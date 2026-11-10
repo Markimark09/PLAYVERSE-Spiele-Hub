@@ -34,7 +34,7 @@ window.solo = (function(){
             for(let i=r-1; i>=0; i--){ let prv=document.getElementById(`cw_${i}_${c}`); if(prv){ prv.focus(); return; } }
         }
     };
-    S.cwCheck = function(){let ok=true;for(let r=0;r<5;r++)for(let c=0;c<5;c++){if(S.cwD[r][c]!=='*'){let i=document.getElementById(`cw_${r}_${c}`); if(i && i.value.toUpperCase()!==S.cwD[r][c])ok=false;}}document.getElementById('cws').textContent=ok?'Richtig gelöst!':'Fehler vorhanden!';};
+    S.cwCheck = function(){let ok=true;for(let r=0;r<5;r++)for(let c=0;c<5;c++){if(S.cwD[r][c]!=='*'){let i=document.getElementById(`cw_${r}_${c}`); if(i && i.value.toUpperCase()!==S.cwD[r][c])ok=false;}}document.getElementById('cws').textContent=ok?'Richtig gelöst! (+5 🎟️)', app.addArcadeTickets(5):'Fehler vorhanden!';};
 
     let hmWords=["COMPUTER","INTERNET","SOFTWARE","GAMING"], hmW="", hmG=[], hmE=0;
     S.hmStart = function(){hmW=hmWords[Math.floor(Math.random()*hmWords.length)];hmG=[];hmE=0;S.hmR();};
@@ -47,7 +47,7 @@ window.solo = (function(){
     S.mthTry = function(){document.getElementById('mths').textContent = parseInt(document.getElementById('mthi').value)===mthA ? 'Richtig!' : 'Falsch!';};
 
     S.slotStart = function(){document.getElementById('sltb').innerHTML='<span>❓</span><span>❓</span><span>❓</span>'; document.getElementById('slts').textContent='Viel Glück!';};
-    S.sltRoll = function(){let a=['🍒','🍋','🍉','⭐'], r=[]; for(let i=0;i<3;i++)r.push(a[Math.floor(Math.random()*a.length)]); let e=document.getElementById('sltb').children; for(let i=0;i<3;i++)e[i].textContent=r[i]; document.getElementById('slts').textContent = (r[0]===r[1]&&r[1]===r[2]) ? 'JACKPOT!' : 'Leider nichts.';};
+    S.sltRoll = function(){let a=['🍒','🍋','🍉','⭐'], r=[]; for(let i=0;i<3;i++)r.push(a[Math.floor(Math.random()*a.length)]); let e=document.getElementById('sltb').children; for(let i=0;i<3;i++)e[i].textContent=r[i]; document.getElementById('slts').textContent = (r[0]===r[1]&&r[1]===r[2]) ? 'JACKPOT! (+15 🎟️)' : 'Leider nichts.';};
 
     S.coinStart = function(){document.getElementById('cnd').textContent='🪙'; document.getElementById('cns').textContent='Kopf oder Zahl?';};
     S.coinFlip = function(){document.getElementById('cnd').textContent = Math.random()>0.5?'KOPF':'ZAHL';};

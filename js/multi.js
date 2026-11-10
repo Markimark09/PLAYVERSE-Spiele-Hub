@@ -60,7 +60,33 @@ window.multi = (function(){
       });
     };
 
+    
+    M.acceptDirectInvite = function(game, code, joinerName) {
+        M.prepare(game);
+        document.getElementById('jc').value = code;
+        document.getElementById('jn').value = joinerName || 'Spieler 2';
+        M.joinRoom();
+    };
+    M.renderQuickInvites = function() {
+        let bar = document.getElementById('quickInviteBar');
+        if(!bar) return;
+        if(!app.currentUser || !app.userData || !app.userData.friends) {
+            bar.innerHTML = `<button class="btn" style="font-size:12px" onclick="app.openModal('friends')">👥 Freunde einladen (Account nötig)</button>`;
+            return;
+        }
+        let frs = app.userData.friends;
+        let fKeys = Object.keys(frs);
+        if(fKeys.length === 0) {
+            bar.innerHTML = `<button class="btn" style="font-size:12px" onclick="app.openModal('friends')">👥 Freunde hinzufügen & einladen</button>`;
+            return;
+        }
+        bar.innerHTML = `<div class="row"><span class="muted" style="font-size:12px">Schnell-Einladung:</span>` +
+            fKeys.map(fk => `<button class="btn primary" style="padding:6px 11px;font-size:12px" onclick="app.sendInvite('${fk}')">📩 ${frs[fk]} einladen</button>`).join('') +
+            `</div>`;
+    };
+
     M.watch = function(){
+      M.renderQuickInvites();
       document.getElementById('ra').style.display='block'; document.getElementById('rc').textContent=M.roomCode;
       if(M.roomListener) M.roomRef.off('value',M.roomListener);
       M.roomListener=s=>{
