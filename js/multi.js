@@ -213,7 +213,7 @@ window.multi = (function(){
           h += `<div style="display:grid;grid-template-columns:repeat(10,min(8vw,35px));gap:2px;justify-content:center;margin:20px auto">`;
           (d.grid||Array(100).fill(0)).forEach((v, i) => {
             let bg = v ? cols[v] : '#26314f';
-            h += `<div style="aspect-ratio:1;background:${bg};cursor:pointer;border-radius:4px" ${(!d.started || isOver)?'':'onclick="multi.po(\'cw_paint\','+i+')"'} ></div>`;
+            h += `<div style="aspect-ratio:1;background:${bg};cursor:pointer;border-radius:4px" ${(!d.started || isOver)?'':'onpointerdown="multi.po(\'cw_paint\','+i+')"'} ></div>`;
           });
           h += `</div>`;
           og.innerHTML = h;

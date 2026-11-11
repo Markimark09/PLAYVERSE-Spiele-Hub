@@ -361,9 +361,122 @@ window.app = {
                 </div>
                 <div class="muted" style="font-size:12px;margin-bottom:6px">${t.cat} · ${t.createdAt}</div>
                 <div style="font-size:13px;margin-bottom:8px">${t.msg}</div>
+                ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>👑 Admin-Antwort:</b> ${t.reply}</div>` : ''}
                 ${isOpen ? `<button class="btn" style="padding:5px 10px;font-size:11px" onclick="app.closeSupportTicket('${k}')">Als erledigt markieren</button>` : ''}
             </div>`;
         }).join('');
+    },
+    adminListener: null,
+    envPin: null,
+    loadEnv: async function() {
+        if(this.envPin) return this.envPin;
+        // 1. Versuche .env Datei zu lesen (funktioniert lokal in IntelliJ & auf Webservern)
+        try {
+            let res = await fetch('.env', { cache: 'no-store' });
+            if(res.ok) {
+                let text = await res.text();
+                let match = text.match(/^\s*ADMIN_PIN\s*=\s*(.+?)\s*$/m);
+                if(match && match[1]) {
+                    this.envPin = match[1].replace(/^['"]|['"]$/g, '').trim();
+                    return this.envPin;
+                }
+            }
+        } catch(e) {}
+        // 2. Fallback: Lese Admin-PIN aus Firebase (playverseAdmin/pin), falls .env auf GitHub Pages blockiert/ausgeblendet ist
+        if(db) {
+            try {
+                let snap = await db.ref('playverseAdmin/pin').once('value');
+                if(snap.exists()) {
+                    this.envPin = String(snap.val()).trim();
+                    return this.envPin;
+                }
+            } catch(e) {}
+        }
+        return null;
+    },
+    verifyPinWithServer: async function(pin) {
+        // 1. Node.js Server-API prüfen (Pelican Panel / Express) -> 100% sicher, .env bleibt geheim
+        try {
+            let res = await fetch('/api/verify-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin: pin })
+            });
+            if(res.status === 200) return true;
+            if(res.status === 401) return false;
+        } catch(e) {}
+        // 2. Fallback für reinen statischen Betrieb ohne Node.js
+        let expectedPin = await this.loadEnv();
+        if(!expectedPin) return null;
+        return pin.trim() === expectedPin;
+    },
+    toggleAdminTickets: async function() {
+        let area = document.getElementById('adminTicketsArea');
+        if(area.style.display === 'block') {
+            area.style.display = 'none';
+            return;
+        }
+        let pin = prompt("Bitte Admin-Passwort / PIN eingeben:");
+        if(pin === null) return;
+        let isValid = await this.verifyPinWithServer(pin);
+        if(isValid === null) {
+            alert("Kein ADMIN_PIN gefunden! Bitte prüfe deine .env Datei.");
+            return;
+        }
+        if(!isValid) {
+            alert("Falscher Admin-PIN!");
+            return;
+        }
+        area.style.display = 'block';
+        if(!db) return;
+        if(this.adminListener) db.ref('playverseTickets').off('value', this.adminListener);
+        this.adminListener = s => {
+            let allUsers = s.val() || {};
+            let box = document.getElementById('allTicketsList');
+            let items = [];
+            Object.keys(allUsers).forEach(uKey => {
+                let uTickets = allUsers[uKey] || {};
+                Object.keys(uTickets).forEach(tKey => {
+                    items.push({ uKey: uKey, tKey: tKey, t: uTickets[tKey] });
+                });
+            });
+            items.reverse();
+            if(items.length === 0) {
+                box.innerHTML = '<div class="muted" style="font-size:13px">Aktuell gibt es überhaupt keine Tickets.</div>';
+                return;
+            }
+            box.innerHTML = items.map(item => {
+                let t = item.t;
+                let isOpen = t.status === 'Offen';
+                return `
+                <div class="ticket-card">
+                    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+                        <strong>👤 ${item.uKey} · #${t.id} (${t.subj})</strong>
+                        <span class="ticket-status ${isOpen?'open':'closed'}">${t.status}</span>
+                    </div>
+                    <div class="muted" style="font-size:12px;margin-bottom:6px">${t.cat} · ${t.createdAt}</div>
+                    <div style="font-size:13px;margin-bottom:8px">${t.msg}</div>
+                    ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>Antwort:</b> ${t.reply}</div>` : ''}
+                    <div class="row" style="justify-content:flex-start">
+                        <button class="btn primary" style="padding:5px 10px;font-size:11px" onclick="app.adminReplyTicket('${item.uKey}','${item.tKey}')">💬 Antworten</button>
+                        ${isOpen ? `<button class="btn success" style="padding:5px 10px;font-size:11px" onclick="app.adminCloseTicket('${item.uKey}','${item.tKey}')">✓ Schließen</button>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+        };
+        db.ref('playverseTickets').on('value', this.adminListener);
+    },
+    adminReplyTicket: function(uKey, tKey) {
+        let text = prompt("Deine Antwort an " + uKey + ":");
+        if(!text || !db) return;
+        db.ref('playverseTickets/' + uKey + '/' + tKey).update({
+            reply: text.trim(),
+            status: 'Beantwortet'
+        });
+    },
+    adminCloseTicket: function(uKey, tKey) {
+        if(!db) return;
+        db.ref('playverseTickets/' + uKey + '/' + tKey + '/status').set('Erledigt');
     }
 };
 
