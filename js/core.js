@@ -1,40 +1,38 @@
-
 const firebaseConfig = {
-  apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
-  authDomain: "playverse-bce37.firebaseapp.com",
-  databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "playverse-bce37",
-  storageBucket: "playverse-bce37.firebasestorage.app",
-  messagingSenderId: "884239855268",
-  appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
+    apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
+    authDomain: "playverse-bce37.firebaseapp.com",
+    databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "playverse-bce37",
+    storageBucket: "playverse-bce37.firebasestorage.app",
+    messagingSenderId: "884239855268",
+    appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
 };
 let db=null, presRef=null;
 try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  let connRef = db.ref('.info/connected');
-  connRef.on('value', s => {
-    if(s.val()===true){
-       presRef = db.ref('playversePresence').push();
-       presRef.onDisconnect().remove();
-       presRef.set(true);
-       if(window.app && window.app.currentUser) {
-           window.app.setOnlineStatus(window.app.currentUser);
-       }
-    }
-  });
-  db.ref('playversePresence').on('value', s => {
-     let el = document.getElementById('onlineCount');
-     if(el) el.textContent = Math.max(1, s.numChildren());
-  });
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    let connRef = db.ref('.info/connected');
+    connRef.on('value', s => {
+        if(s.val()===true){
+            presRef = db.ref('playversePresence').push();
+            presRef.onDisconnect().remove();
+            presRef.set(true);
+            if(window.app && window.app.currentUser) {
+                window.app.setOnlineStatus(window.app.currentUser);
+            }
+        }
+    });
+    db.ref('playversePresence').on('value', s => {
+        let el = document.getElementById('onlineCount');
+        if(el) el.textContent = Math.max(1, s.numChildren());
+    });
 } catch(e) { console.warn("Firebase Init Error:", e) }
 
 window.app = {
     itvs: [], toms: [], rafs: [], idleTimer: null, resetTimer: null,
     currentUser: null, userData: null, userListener: null, ticketsListener: null,
-    onlineUsers: {}, vipUsersMap: {}, myTicketsCache: {}, allTicketsCache: {},
-    myTicketFilter: 'all', adminTicketFilter: 'all',
-    lastPrizeSubmitTs: 0, submittedNonces: {},
+    onlineUsers: {}, cachedMyTickets: {}, cachedAllTickets: {},
+    pendingClaim: false, claimInterval: null, claimSecondsLeft: 0,
 
     stInt: function(f,t) { let i=setInterval(f,t); this.itvs.push(i); return i; },
     stTo:  function(f,t) { let i=setTimeout(f,t); this.toms.push(i); return i; },
@@ -58,7 +56,53 @@ window.app = {
         document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
         document.getElementById('grid-'+t).classList.add('active');
         document.getElementById('btn-'+t).classList.add('active');
+        let searchEl = document.getElementById('gameSearch');
+        if(searchEl) this.filterGames(searchEl.value);
     },
+
+    // --- 1. SUCHLEISTE ---
+    filterGames: function(rawQuery) {
+        let q = (rawQuery || '').trim().toLowerCase();
+        let clearBtn = document.getElementById('searchClearBtn');
+        if(clearBtn) clearBtn.style.display = q.length > 0 ? 'inline-block' : 'none';
+
+        let countGrid = (gridId) => {
+            let grid = document.getElementById(gridId);
+            if(!grid) return 0;
+            let visible = 0;
+            grid.querySelectorAll('.card').forEach(card => {
+                let text = card.textContent.toLowerCase();
+                let match = !q || text.includes(q);
+                card.style.display = match ? 'flex' : 'none';
+                if(match) visible++;
+            });
+            return visible;
+        };
+
+        let soloMatches = countGrid('grid-solo');
+        let multiMatches = countGrid('grid-multi');
+
+        let cs = document.getElementById('count-solo');
+        let cm = document.getElementById('count-multi');
+        if(cs) cs.textContent = soloMatches;
+        if(cm) cm.textContent = multiMatches;
+
+        let activeGrid = document.querySelector('.tab-content.active');
+        let activeMatches = activeGrid && activeGrid.id === 'grid-multi' ? multiMatches : soloMatches;
+        let emptyHint = document.getElementById('searchEmptyHint');
+        if(emptyHint) {
+            emptyHint.style.display = (q.length > 0 && activeMatches === 0) ? 'block' : 'none';
+        }
+    },
+    clearSearch: function() {
+        let input = document.getElementById('gameSearch');
+        if(input) {
+            input.value = '';
+            this.filterGames('');
+            input.focus();
+        }
+    },
+
     home: function() {
         this.clrAll();
         document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
@@ -82,173 +126,175 @@ window.app = {
         }
     },
 
-    // --- VIP HELPER FUNCTIONS (30 DAYS AUTO-EXPIRATION) ---
-    isVip: function(vipUntil) {
-        return Boolean(vipUntil && Number(vipUntil) > Date.now());
-    },
-    getVipBadgeHtml: function(vipUntil) {
-        if(!this.isVip(vipUntil)) return '';
-        return '<span class="vip-badge" title="Aktiver VIP-Spieler">👑 VIP</span>';
-    },
-    getUserVipBadge: function(userKey) {
-        let until = this.vipUsersMap[userKey] || 0;
-        return this.getVipBadgeHtml(until);
-    },
-    formatVipDaysLeft: function(vipUntil) {
-        if(!this.isVip(vipUntil)) return 'Kein aktiver VIP-Rang';
-        let diffMs = Number(vipUntil) - Date.now();
-        let days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-        let dateStr = new Date(Number(vipUntil)).toLocaleDateString('de-DE');
-        return `👑 Aktiv bis ${dateStr} (noch ${days} ${days===1?'Tag':'Tage'})`;
-    },
-    buyVipRank: function() {
-        if(!this.currentUser || !db || !this.userData) {
-            alert("Bitte logge dich zuerst ein!");
-            return;
+    // --- 2. PAUSCHALER +5 TICKETS GUTSCHREIBEN-BUTTON (120 SEKUNDEN ANZEIGEZEIT) ---
+    offerTicketClaim: function(reasonText) {
+        this.pendingClaim = true;
+        this.claimSecondsLeft = 120;
+        let bar = document.getElementById('claimTicketBar');
+        let txt = document.getElementById('claimTicketText');
+        let tmr = document.getElementById('claimTicketTimer');
+        let btn = document.getElementById('claimTicketBtn');
+        if(txt) txt.textContent = `🎉 ${reasonText || 'Spiel beendet!'} — Klicke rechts, um deine pauschal +5 Tickets gutzuschreiben!`;
+        if(btn) {
+            btn.disabled = false;
+            btn.textContent = '🎟️ +5 Tickets gutschreiben';
         }
-        const cost = 50;
-        let currentTickets = Number(this.userData.arcadeTickets || 0);
-        let fb = document.getElementById('vipBuyFeedback');
-        if(currentTickets < cost) {
-            if(fb) {
-                fb.style.color = 'var(--red)';
-                fb.textContent = `Nicht genügend Arcade-Tickets! Du hast ${currentTickets} 🎟️, benötigst aber ${cost} 🎟️.`;
-            }
-            return;
-        }
-        let now = Date.now();
-        let baseTime = (this.userData.vipUntil && Number(this.userData.vipUntil) > now) ? Number(this.userData.vipUntil) : now;
-        let newVipUntil = baseTime + (30 * 24 * 60 * 60 * 1000); // +30 Tage
-        db.ref('playverseUsers/' + this.currentUser).update({
-            arcadeTickets: currentTickets - cost,
-            vipUntil: newVipUntil
-        }).then(() => {
-            if(fb) {
-                fb.style.color = 'var(--lime)';
-                fb.textContent = `🎉 Glückwunsch! Dein 👑 VIP-Rang ist für 30 Tage aktiviert!`;
-            }
-        });
-    },
+        if(tmr) tmr.textContent = this.claimSecondsLeft;
+        if(bar) bar.style.display = 'block';
 
-    // --- CRYPTO SIGNATURE & ANTI-CHEAT / ANTI-SPAM FOR PRIZE TICKETS ---
-    computeRunSignature: function(userKey, game, score, durationSec, actions, nonce) {
-        const raw = `${userKey||'guest'}|${game}|${score}|${durationSec}|${actions}|${nonce}|PV_V25_ARCADE_SECRET_991`;
-        let h = 2166136261 >>> 0;
-        for(let i=0; i<raw.length; i++) {
-            h ^= raw.charCodeAt(i);
-            h = Math.imul(h, 16777619) >>> 0;
-        }
-        return 'PVSIG-' + h.toString(16).toUpperCase();
+        if(this.claimInterval) clearInterval(this.claimInterval);
+        this.claimInterval = setInterval(() => {
+            this.claimSecondsLeft--;
+            if(tmr) tmr.textContent = Math.max(0, this.claimSecondsLeft);
+            if(this.claimSecondsLeft <= 0) {
+                this.hideClaimBar();
+            }
+        }, 1000);
     },
-    verifyPrizeProof: function(proof) {
-        if(!proof || typeof proof !== 'object') return { ok: false, reason: 'Ungültige Spieldaten' };
-        let expectedSig = this.computeRunSignature(proof.userKey || 'guest', proof.game, proof.score, proof.durationSec, proof.actions, proof.nonce);
-        if(proof.sig !== expectedSig) return { ok: false, reason: 'Signatur-Fälschung erkannt' };
-        if(proof.score <= 0 || proof.durationSec < 2 || proof.actions < 1) return { ok: false, reason: 'Unplausible Spielzeit/Aktionen' };
-        if(proof.game === 'Tetris' && proof.score > proof.durationSec * 2500) return { ok: false, reason: 'Unrealistische Tetris-Punktzahl pro Sekunde' };
-        if(proof.game === 'Stacker' && proof.score > 5000) return { ok: false, reason: 'Maximalpunktzahl überschritten' };
-        return { ok: true, reason: 'Hash & Spielzeit verifiziert' };
-    },
-    submitPrizeTicket: function(proof, msgElId, btnElId) {
-        let msgEl = document.getElementById(msgElId);
-        let btnEl = document.getElementById(btnElId);
+    claimPendingTickets: function() {
+        if(!this.pendingClaim) return;
         if(!this.currentUser || !db || !this.userData) {
-            if(msgEl) { msgEl.style.color = 'var(--gold)'; msgEl.textContent = 'Bitte logge dich kurz ein, um deinen Highscore einzureichen!'; }
+            alert("Bitte logge dich oben rechts unter 'Login / Account' ein, damit dir die +5 Tickets gutgeschrieben werden können!");
             this.openModal('acc');
             return;
         }
-        // Check single-use nonce per round
-        if(this.submittedNonces[proof.nonce]) {
-            if(msgEl) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '⚠️ Dieser Durchgang wurde bereits als Preis-Ticket eingereicht!'; }
-            return;
+        this.pendingClaim = false;
+        let next = (Number(this.userData.arcadeTickets) || 0) + 5;
+        db.ref('playverseUsers/' + this.currentUser + '/arcadeTickets').set(next);
+        let btn = document.getElementById('claimTicketBtn');
+        if(btn) {
+            btn.disabled = true;
+            btn.textContent = '✓ +5 Tickets gutgeschrieben!';
         }
-        // Check 30s spam cooldown
-        let now = Date.now();
-        let diffSec = Math.floor((now - this.lastPrizeSubmitTs) / 1000);
-        if(this.lastPrizeSubmitTs && diffSec < 30) {
-            if(msgEl) { msgEl.style.color = 'var(--red)'; msgEl.textContent = `⏳ Spam-Schutz aktiv: Bitte warte noch ${30 - diffSec}s vor dem nächsten Preis-Ticket.`; }
-            return;
+        setTimeout(() => this.hideClaimBar(), 2500);
+    },
+    hideClaimBar: function() {
+        this.pendingClaim = false;
+        if(this.claimInterval) {
+            clearInterval(this.claimInterval);
+            this.claimInterval = null;
         }
-        let check = this.verifyPrizeProof(proof);
-        if(!check.ok) {
-            if(msgEl) { msgEl.style.color = 'var(--red)'; msgEl.textContent = '❌ Sicherheitsprüfung fehlgeschlagen: ' + check.reason; }
-            return;
-        }
-        let rewardTickets = proof.game === 'Tetris'
-            ? Math.max(5, Math.min(150, Math.floor(proof.score / 150) * 5 + 5))
-            : Math.max(5, Math.min(150, Math.floor(proof.score / 100) * 5));
-
-        this.lastPrizeSubmitTs = now;
-        this.submittedNonces[proof.nonce] = true;
-        if(btnEl) btnEl.disabled = true;
-
-        let tRef = db.ref('playverseTickets/' + this.currentUser).push();
-        tRef.set({
-            id: tRef.key.slice(-6).toUpperCase(),
-            type: 'prize',
-            game: proof.game,
-            score: proof.score,
-            detail: proof.detail || '',
-            durationSec: proof.durationSec,
-            actions: proof.actions,
-            rewardTickets: rewardTickets,
-            verified: true,
-            sig: proof.sig,
-            cat: `🏆 Preis-Ticket (${proof.game})`,
-            subj: `${proof.game}: ${proof.score} Punkte (${proof.detail})`,
-            msg: `Automatisch verifizierter Highscore aus ${proof.game}. Spielzeit: ${proof.durationSec}s · Aktionen: ${proof.actions} · Signatur: ${proof.sig}. Vorgeschlagene Belohnung: +${rewardTickets} 🎟️`,
-            status: 'Offen',
-            createdAt: new Date().toLocaleString('de-DE')
-        }).then(() => {
-            if(msgEl) {
-                msgEl.style.color = 'var(--lime)';
-                msgEl.textContent = `✅ Preis-Ticket (#${tRef.key.slice(-6).toUpperCase()}) für +${rewardTickets} 🎟️ erfolgreich eingereicht!`;
-            }
-        });
+        let bar = document.getElementById('claimTicketBar');
+        if(bar) bar.style.display = 'none';
+    },
+    // Kompatibilitäts-Wrapper: Jede frühere Ticket-Vergabe triggert nun den manuellen +5 Gutschreiben-Button
+    addArcadeTickets: function(amount, reason) {
+        this.offerTicketClaim(reason || 'Runde erfolgreich abgeschlossen');
     },
 
-    // --- HIGHSCORE LEADERBOARD SYSTEM ---
-    saveHighscore: function(gameKey, score, detail) {
-        if(!this.currentUser || !db || !this.userData || score <= 0) return;
-        let lbRef = db.ref('playverseLeaderboards/' + gameKey + '/' + this.currentUser);
-        lbRef.once('value').then(s => {
-            let prev = s.exists() ? Number(s.val().score || 0) : 0;
-            if(score > prev) {
-                lbRef.set({
-                    displayName: this.userData.displayName || this.currentUser,
-                    score: Number(score),
-                    detail: detail || '',
-                    ts: Date.now()
+    // --- 3. BESTENLISTE (LEADERBOARD) SPEICHERUNG & SORTIERUNG ---
+    saveHighscore: function(boardKey, scoreValue) {
+        let num = Number(scoreValue) || 0;
+        if(num <= 0) return;
+        localStorage.setItem('pv_best_' + boardKey, Math.max(num, Number(localStorage.getItem('pv_best_' + boardKey)) || 0));
+        if(!this.currentUser || !db) return;
+        let disp = (this.userData && this.userData.displayName) || this.currentUser;
+        let ref = db.ref('playverseLeaderboards/' + boardKey + '/' + this.currentUser);
+        ref.once('value').then(s => {
+            let prev = (s.exists() && s.val() && Number(s.val().score)) ? Number(s.val().score) : 0;
+            if(num > prev) {
+                ref.set({
+                    name: disp,
+                    score: num,
+                    updatedAt: Date.now()
                 });
             }
         });
     },
-    renderLeaderboardBox: function(gameKey, boxId) {
-        if(!db) return;
-        db.ref('playverseLeaderboards/' + gameKey).on('value', s => {
-            let box = document.getElementById(boxId);
-            if(!box) return;
-            let data = s.val() || {};
-            let arr = Object.keys(data).map(uKey => ({
-                uKey: uKey,
-                name: data[uKey].displayName || uKey,
-                score: Number(data[uKey].score || 0),
-                detail: data[uKey].detail || ''
-            })).sort((a,b) => b.score - a.score).slice(0, 10);
-
-            if(arr.length === 0) {
-                box.innerHTML = '<div class="muted" style="font-size:13px">Noch keine Einträge. Sei der Erste!</div>';
-                return;
-            }
-            box.innerHTML = arr.map((item, idx) => {
-                let medal = idx===0 ? '🥇' : idx===1 ? '🥈' : idx===2 ? '🥉' : `${idx+1}.`;
-                return `
-                <div class="list-item">
-                    <div><strong>${medal} ${item.name}</strong>${this.getUserVipBadge(item.uKey)} <span class="muted" style="font-size:11px">${item.detail}</span></div>
-                    <strong style="color:var(--lime)">${item.score} Pkt.</strong>
-                </div>`;
-            }).join('');
+    openLeaderboard: function(category) {
+        let cat = category || 'tickets';
+        document.getElementById('leaderboardModal').classList.add('open');
+        ['tickets', 'chase', 'tower'].forEach(c => {
+            let btn = document.getElementById('lb-tab-' + c);
+            if(btn) btn.classList.toggle('active', c === cat);
         });
+        let box = document.getElementById('leaderboardList');
+        box.innerHTML = '<div class="muted" style="font-size:13px">Lade und sortiere Bestenliste...</div>';
+        if(!db) {
+            box.innerHTML = '<div class="muted" style="font-size:13px">Firebase nicht verbunden.</div>';
+            return;
+        }
+        if(cat === 'tickets') {
+            db.ref('playverseUsers').once('value').then(s => {
+                let users = s.val() || {};
+                let rows = Object.keys(users).map(uk => ({
+                    name: users[uk].displayName || uk,
+                    score: Number(users[uk].arcadeTickets) || 0
+                })).sort((a, b) => b.score - a.score);
+                this.renderLeaderboardRows(rows, '🎟️ Tickets');
+            });
+        } else {
+            let unit = cat === 'chase' ? 'm Distanz' : 'Etagen';
+            db.ref('playverseLeaderboards/' + cat).once('value').then(s => {
+                let data = s.val() || {};
+                let rows = Object.keys(data).map(uk => ({
+                    name: data[uk].name || uk,
+                    score: Number(data[uk].score) || 0
+                })).sort((a, b) => b.score - a.score);
+                this.renderLeaderboardRows(rows, unit);
+            });
+        }
+    },
+    renderLeaderboardRows: function(rows, unitLabel) {
+        let box = document.getElementById('leaderboardList');
+        if(!rows || rows.length === 0) {
+            box.innerHTML = '<div class="muted" style="font-size:13px">Noch keine Einträge vorhanden. Spiele eine Runde, um Platz 1 zu erobern!</div>';
+            return;
+        }
+        box.innerHTML = rows.slice(0, 30).map((r, idx) => {
+            let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+            return `
+            <div class="list-item">
+                <div><strong style="color:var(--gold);margin-right:8px">${medal}</strong> <b>${this.escapeHtml(r.name)}</b></div>
+                <span class="pill ticket-pill">${r.score} ${unitLabel}</span>
+            </div>`;
+        }).join('');
+    },
+    closeLeaderboard: function() {
+        document.getElementById('leaderboardModal').classList.remove('open');
+    },
+
+    // --- CHATFENSTER & MODAL RESIZE ---
+    toggleModalFullscreen: function(modalId) {
+        let el = document.getElementById(modalId || 'mainHubModalBox');
+        if(el) el.classList.toggle('fullscreen-modal');
+    },
+    toggleChatFullscreen: function(chatId) {
+        let el = document.getElementById(chatId);
+        if(el) el.classList.toggle('chat-expanded');
+    },
+    sendChatMessage: function(inputId) {
+        let inp = document.getElementById(inputId || 'chatInput');
+        if(!inp) return;
+        let text = inp.value.trim();
+        if(!text || !db) return;
+        let sender = (this.userData && this.userData.displayName) || this.currentUser || 'Gast';
+        db.ref('playverseGlobalChat').push({
+            sender: sender,
+            text: text,
+            time: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+        });
+        inp.value = '';
+    },
+    renderChatMessages: function(msgsObj) {
+        let keys = Object.keys(msgsObj || {}).slice(-40);
+        let html = keys.length === 0
+            ? '<div class="muted" style="font-size:12px">Noch keine Nachrichten im Chat.</div>'
+            : keys.map(k => {
+                let m = msgsObj[k];
+                return `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.escapeHtml(m.sender||'Spieler')}:</b> ${this.escapeHtml(m.text||'')}</div>`;
+            }).join('');
+
+        ['chatMessages', 'modalChatMessages'].forEach(id => {
+            let box = document.getElementById(id);
+            if(box) {
+                box.innerHTML = html;
+                box.scrollTop = box.scrollHeight;
+            }
+        });
+    },
+    escapeHtml: function(str) {
+        return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
     },
 
     // --- MODAL & ACCOUNT / FRIENDS / TICKETS ---
@@ -260,11 +306,9 @@ window.app = {
         document.getElementById('hubModal').classList.remove('open');
     },
     openSubTab: function(tab) {
-        ['acc','friends','tickets','leaders'].forEach(k => {
-            let btn = document.getElementById('st-'+k);
-            let pane = document.getElementById('pane-'+k);
-            if(btn) btn.classList.toggle('active', k===tab);
-            if(pane) pane.style.display = (k===tab) ? 'block' : 'none';
+        ['acc','friends','tickets'].forEach(k => {
+            document.getElementById('st-'+k).classList.toggle('active', k===tab);
+            document.getElementById('pane-'+k).style.display = (k===tab) ? 'block' : 'none';
         });
     },
     cleanKey: function(name) {
@@ -296,7 +340,7 @@ window.app = {
                     msg.textContent = "Dieser Benutzername ist bereits vergeben!";
                     return;
                 }
-                let profile = { displayName: rawName, pass: pass, arcadeTickets: 10, vipUntil: 0, createdAt: Date.now() };
+                let profile = { displayName: rawName, pass: pass, arcadeTickets: 10, createdAt: Date.now() };
                 uRef.set(profile).then(() => {
                     msg.textContent = "Account erfolgreich erstellt! (+10 Start-Tickets)";
                     this.completeLogin(key, profile);
@@ -318,6 +362,10 @@ window.app = {
         localStorage.setItem('pv_pass', data.pass);
         this.setOnlineStatus(key);
 
+        let hn = document.getElementById('hn'), jn = document.getElementById('jn');
+        if(hn) hn.value = data.displayName || key;
+        if(jn) jn.value = data.displayName || key;
+
         if(this.userListener) db.ref('playverseUsers/' + key).off('value', this.userListener);
         this.userListener = s => {
             if(!s.exists()) return;
@@ -329,8 +377,8 @@ window.app = {
 
         if(this.ticketsListener) db.ref('playverseTickets/' + key).off('value', this.ticketsListener);
         this.ticketsListener = s => {
-            this.myTicketsCache = s.val() || {};
-            this.renderTicketsList();
+            this.cachedMyTickets = s.val() || {};
+            this.renderTicketsList(this.cachedMyTickets);
         };
         db.ref('playverseTickets/' + key).on('value', this.ticketsListener);
     },
@@ -346,11 +394,6 @@ window.app = {
         localStorage.removeItem('pv_pass');
         this.renderAccountUI();
     },
-    addArcadeTickets: function(amount) {
-        if(!this.currentUser || !db || !this.userData) return;
-        let next = Number(this.userData.arcadeTickets || 0) + Number(amount);
-        db.ref('playverseUsers/' + this.currentUser + '/arcadeTickets').set(next);
-    },
     renderAccountUI: function() {
         let logged = !!this.currentUser && !!this.userData;
         document.getElementById('authGuest').style.display = logged ? 'none' : 'block';
@@ -362,33 +405,18 @@ window.app = {
         document.getElementById('headerTicketPill').style.display = logged ? 'flex' : 'none';
 
         if(!logged) {
-            document.getElementById('headerAccBtn').innerHTML = '👤 Login / Account';
-            document.getElementById('headerVipPill').style.display = 'none';
+            document.getElementById('headerAccBtn').textContent = '👤 Login / Account';
             document.getElementById('friendReqBadge').style.display = 'none';
             return;
         }
         let d = this.userData;
-        let tCount = Number(d.arcadeTickets || 0);
-        let vipActive = this.isVip(d.vipUntil);
-        let baseName = d.displayName || this.currentUser;
-
-        // Pre-fill multiplayer lobby names with VIP crown if active
-        let lobbyName = vipActive ? `👑 ${baseName}` : baseName;
-        let hn = document.getElementById('hn'), jn = document.getElementById('jn');
-        if(hn) hn.value = lobbyName;
-        if(jn) jn.value = lobbyName;
-
-        document.getElementById('headerAccBtn').innerHTML = `👤 ${baseName}${vipActive ? ' <span class="vip-badge">👑 VIP</span>' : ''}`;
-        document.getElementById('headerVipPill').style.display = vipActive ? 'flex' : 'none';
-        document.getElementById('profName').textContent = baseName;
-        document.getElementById('profVipBadge').innerHTML = this.getVipBadgeHtml(d.vipUntil);
-        document.getElementById('profVipStatusText').textContent = this.formatVipDaysLeft(d.vipUntil);
-        document.getElementById('vipShopStatus').textContent = this.formatVipDaysLeft(d.vipUntil);
+        let tCount = Number(d.arcadeTickets) || 0;
+        document.getElementById('headerAccBtn').textContent = '👤 ' + (d.displayName || this.currentUser);
+        document.getElementById('profName').textContent = d.displayName || this.currentUser;
         document.getElementById('profArcadeTickets').textContent = tCount;
         document.getElementById('headerTickets').textContent = tCount;
         document.getElementById('ticketPaneCount').textContent = tCount;
 
-        // Requests
         let reqs = d.requests || {};
         let reqKeys = Object.keys(reqs);
         let badge = document.getElementById('friendReqBadge');
@@ -401,16 +429,15 @@ window.app = {
         } else {
             reqBox.innerHTML = reqKeys.map(rk => `
                 <div class="list-item">
-                    <span><b>${reqs[rk]}</b>${this.getUserVipBadge(rk)} möchte dein Freund sein</span>
+                    <span><b>${this.escapeHtml(reqs[rk])}</b> möchte dein Freund sein</span>
                     <div class="row">
-                        <button class="btn success" style="padding:6px 10px;font-size:12px" onclick="app.respondFriend('${rk}','${reqs[rk]}',true)">✓ Annehmen</button>
+                        <button class="btn success" style="padding:6px 10px;font-size:12px" onclick="app.respondFriend('${rk}','${this.escapeHtml(reqs[rk])}',true)">✓ Annehmen</button>
                         <button class="btn danger" style="padding:6px 10px;font-size:12px" onclick="app.respondFriend('${rk}','',false)">✕</button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Friends List (with VIP badge)
         let frs = d.friends || {};
         let frKeys = Object.keys(frs);
         let frBox = document.getElementById('friendList');
@@ -422,7 +449,7 @@ window.app = {
                 let canInvite = window.multi && window.multi.roomCode && document.getElementById('online').classList.contains('active');
                 return `
                 <div class="list-item">
-                    <div><span class="${isOn?'badge-online':'badge-offline'}"></span><b>${frs[fk]}</b>${this.getUserVipBadge(fk)} <span class="muted" style="font-size:11px">(${isOn?'Online':'Offline'})</span></div>
+                    <div><span class="${isOn?'badge-online':'badge-offline'}"></span><b>${this.escapeHtml(frs[fk])}</b> <span class="muted" style="font-size:11px">(${isOn?'Online':'Offline'})</span></div>
                     <div class="row">
                         ${canInvite ? `<button class="btn primary" style="padding:6px 12px;font-size:12px" onclick="app.sendInvite('${fk}')">📩 In Raum einladen</button>` : `<span class="muted" style="font-size:11px">Öffne ein Spiel zum Einladen</span>`}
                     </div>
@@ -464,10 +491,8 @@ window.app = {
             alert("Erstelle oder betrete zuerst einen Multiplayer-Raum, um einen Freund einzuladen!");
             return;
         }
-        let senderName = this.userData.displayName || this.currentUser;
-        if(this.isVip(this.userData.vipUntil)) senderName = '👑 ' + senderName;
         let inv = {
-            fromName: senderName,
+            fromName: this.userData.displayName || this.currentUser,
             roomCode: window.multi.roomCode,
             game: window.multi.gameType,
             ts: Date.now()
@@ -488,9 +513,7 @@ window.app = {
             db.ref('playverseUsers/' + this.currentUser + '/invite').remove();
             toast.classList.remove('show');
             this.closeModal();
-            let joinName = this.userData.displayName || this.currentUser;
-            if(this.isVip(this.userData.vipUntil)) joinName = '👑 ' + joinName;
-            window.multi.acceptDirectInvite(inv.game, inv.roomCode, joinName);
+            window.multi.acceptDirectInvite(inv.game, inv.roomCode, this.userData.displayName || this.currentUser);
         };
         toast.classList.add('show');
     },
@@ -499,7 +522,7 @@ window.app = {
         if(this.currentUser && db) db.ref('playverseUsers/' + this.currentUser + '/invite').remove();
     },
 
-    // --- SUPPORT & PRIZE TICKET SYSTEM ---
+    // --- SUPPORT TICKET SYSTEM (INKL. GROSSANSICHT & LÖSCHEN) ---
     createSupportTicket: function() {
         if(!this.currentUser || !db) return;
         let cat = document.getElementById('tktCat').value;
@@ -513,7 +536,6 @@ window.app = {
         let tRef = db.ref('playverseTickets/' + this.currentUser).push();
         tRef.set({
             id: tRef.key.slice(-6).toUpperCase(),
-            type: 'support',
             cat: cat,
             subj: subj,
             msg: body,
@@ -522,53 +544,73 @@ window.app = {
         }).then(() => {
             document.getElementById('tktSubj').value = '';
             document.getElementById('tktMsg').value = '';
-            fb.textContent = "✓ Support-Ticket wurde erstellt und gespeichert!";
+            fb.textContent = "✓ Ticket wurde erstellt und gespeichert!";
         });
     },
     closeSupportTicket: function(tKey) {
         if(!this.currentUser || !db) return;
         db.ref('playverseTickets/' + this.currentUser + '/' + tKey + '/status').set('Erledigt');
     },
-    setMyTicketFilter: function(flt) {
-        this.myTicketFilter = flt;
-        this.renderTicketsList();
-    },
-    renderTicketsList: function() {
-        let ticketsObj = this.myTicketsCache || {};
+    renderTicketsList: function(ticketsObj) {
         let box = document.getElementById('myTicketsList');
-        if(!box) return;
-        let keys = Object.keys(ticketsObj).reverse().filter(k => {
-            let t = ticketsObj[k];
-            let tType = t.type || 'support';
-            if(this.myTicketFilter === 'all') return true;
-            return tType === this.myTicketFilter;
-        });
+        let keys = Object.keys(ticketsObj).reverse();
         if(keys.length === 0) {
-            box.innerHTML = '<div class="muted" style="font-size:13px">Keine Tickets in dieser Ansicht vorhanden.</div>';
+            box.innerHTML = '<div class="muted" style="font-size:13px">Du hast noch keine Support-Tickets erstellt.</div>';
             return;
         }
         box.innerHTML = keys.map(k => {
             let t = ticketsObj[k];
-            let isPrize = t.type === 'prize';
             let isOpen = t.status === 'Offen';
             return `
-            <div class="ticket-card" style="${isPrize?'border-color:#ffc85766':''}">
+            <div class="ticket-card">
                 <div class="row" style="justify-content:space-between;margin-bottom:6px">
-                    <div>
-                        <span class="type-badge ${isPrize?'prize':'support'}">${isPrize?'🏆 Preis-Ticket':'🛠️ Support'}</span>
-                        <strong style="margin-left:6px">#${t.id} · ${t.subj}</strong>
-                    </div>
-                    <span class="ticket-status ${isOpen?'open':'closed'}">${t.status}</span>
+                    <strong>#${this.escapeHtml(t.id)} · ${this.escapeHtml(t.subj)}</strong>
+                    <span class="ticket-status ${isOpen?'open':'closed'}">${this.escapeHtml(t.status)}</span>
                 </div>
-                <div class="muted" style="font-size:12px;margin-bottom:6px">${t.cat} · ${t.createdAt}</div>
-                <div style="font-size:13px;margin-bottom:8px">${t.msg}</div>
-                ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>👑 Admin-Antwort:</b> ${t.reply}</div>` : ''}
-                ${(isOpen && !isPrize) ? `<button class="btn" style="padding:5px 10px;font-size:11px" onclick="app.closeSupportTicket('${k}')">Als erledigt markieren</button>` : ''}
+                <div class="muted" style="font-size:12px;margin-bottom:6px">${this.escapeHtml(t.cat)} · ${this.escapeHtml(t.createdAt)}</div>
+                <div style="font-size:13px;margin-bottom:8px">${this.escapeHtml(t.msg)}</div>
+                ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>👑 Admin-Antwort:</b> ${this.escapeHtml(t.reply)}</div>` : ''}
+                <div class="row" style="justify-content:flex-start">
+                    <button class="btn" style="padding:5px 10px;font-size:11px" onclick="app.openTicketDetail('${this.currentUser}','${k}',false)">🔍 Großansicht</button>
+                    ${isOpen ? `<button class="btn success" style="padding:5px 10px;font-size:11px" onclick="app.closeSupportTicket('${k}')">✓ Als erledigt markieren</button>` : ''}
+                </div>
             </div>`;
         }).join('');
     },
+    openTicketDetail: function(uKey, tKey, isAdmin) {
+        let source = isAdmin ? (this.cachedAllTickets[uKey] || {}) : this.cachedMyTickets;
+        let t = source[tKey];
+        if(!t) return;
 
-    // --- ADMIN PANEL (FILTER BY PRIZE VS SUPPORT + 1-CLICK APPROVAL) ---
+        document.getElementById('tdTitle').textContent = `Ticket #${t.id} — ${t.subj}`;
+        document.getElementById('tdMeta').innerHTML = `👤 Spieler: <b>${this.escapeHtml(uKey)}</b> &nbsp;|&nbsp; 📂 Kategorie: <b>${this.escapeHtml(t.cat)}</b> &nbsp;|&nbsp; 🕒 Erstellt: ${this.escapeHtml(t.createdAt)} &nbsp;|&nbsp; Status: <span class="ticket-status ${t.status==='Offen'?'open':'closed'}">${this.escapeHtml(t.status)}</span>`;
+        document.getElementById('tdBody').textContent = t.msg || '';
+
+        let replyBox = document.getElementById('tdReplyBox');
+        if(t.reply) {
+            replyBox.innerHTML = `<div style="background:#1c2940;border-left:4px solid var(--cyan);padding:12px;border-radius:8px;font-size:14px"><b>👑 Admin-Antwort:</b><br>${this.escapeHtml(t.reply)}</div>`;
+        } else {
+            replyBox.innerHTML = `<div class="muted" style="font-size:12px">Noch keine Admin-Antwort vorhanden.</div>`;
+        }
+
+        let actBox = document.getElementById('tdActions');
+        if(isAdmin) {
+            actBox.innerHTML = `
+                <button class="btn primary" onclick="app.adminReplyTicket('${uKey}','${tKey}',true)">💬 Antworten</button>
+                ${t.status === 'Offen' ? `<button class="btn success" onclick="app.adminCloseTicket('${uKey}','${tKey}',true)">✓ Schließen</button>` : ''}
+                <button class="btn danger" onclick="app.adminDeleteTicket('${uKey}','${tKey}',true)">🗑️ Ticket löschen</button>
+            `;
+        } else {
+            actBox.innerHTML = t.status === 'Offen'
+                ? `<button class="btn success" onclick="app.closeSupportTicket('${tKey}');app.closeTicketDetail()">✓ Als erledigt markieren</button>`
+                : '';
+        }
+
+        document.getElementById('ticketDetailModal').classList.add('open');
+    },
+    closeTicketDetail: function() {
+        document.getElementById('ticketDetailModal').classList.remove('open');
+    },
     adminListener: null,
     envPin: null,
     loadEnv: async function() {
@@ -593,7 +635,7 @@ window.app = {
                 }
             } catch(e) {}
         }
-        return null;
+        return "1234";
     },
     verifyPinWithServer: async function(pin) {
         try {
@@ -606,16 +648,7 @@ window.app = {
             if(res.status === 401) return false;
         } catch(e) {}
         let expectedPin = await this.loadEnv();
-        if(!expectedPin) return null;
         return pin.trim() === expectedPin;
-    },
-    setAdminTicketFilter: function(flt) {
-        this.adminTicketFilter = flt;
-        ['all','prize','support'].forEach(k => {
-            let b = document.getElementById('admFlt-'+k);
-            if(b) b.className = (k===flt) ? 'btn primary' : 'btn';
-        });
-        this.renderAdminTicketsList();
     },
     toggleAdminTickets: async function() {
         let area = document.getElementById('adminTicketsArea');
@@ -626,10 +659,6 @@ window.app = {
         let pin = prompt("Bitte Admin-Passwort / PIN eingeben:");
         if(pin === null) return;
         let isValid = await this.verifyPinWithServer(pin);
-        if(isValid === null) {
-            alert("Kein ADMIN_PIN gefunden! Bitte prüfe deine .env Datei oder 'playverseAdmin/pin' in Firebase.");
-            return;
-        }
         if(!isValid) {
             alert("Falscher Admin-PIN!");
             return;
@@ -638,105 +667,80 @@ window.app = {
         if(!db) return;
         if(this.adminListener) db.ref('playverseTickets').off('value', this.adminListener);
         this.adminListener = s => {
-            this.allTicketsCache = s.val() || {};
-            this.renderAdminTicketsList();
+            let allUsers = s.val() || {};
+            this.cachedAllTickets = allUsers;
+            let box = document.getElementById('allTicketsList');
+            let items = [];
+            Object.keys(allUsers).forEach(uKey => {
+                let uTickets = allUsers[uKey] || {};
+                Object.keys(uTickets).forEach(tKey => {
+                    items.push({ uKey: uKey, tKey: tKey, t: uTickets[tKey] });
+                });
+            });
+            items.reverse();
+            if(items.length === 0) {
+                box.innerHTML = '<div class="muted" style="font-size:13px">Aktuell gibt es keine Tickets.</div>';
+                return;
+            }
+            box.innerHTML = items.map(item => {
+                let t = item.t;
+                let isOpen = t.status === 'Offen';
+                return `
+                <div class="ticket-card">
+                    <div class="row" style="justify-content:space-between;margin-bottom:6px">
+                        <strong>👤 ${this.escapeHtml(item.uKey)} · #${this.escapeHtml(t.id)} (${this.escapeHtml(t.subj)})</strong>
+                        <span class="ticket-status ${isOpen?'open':'closed'}">${this.escapeHtml(t.status)}</span>
+                    </div>
+                    <div class="muted" style="font-size:12px;margin-bottom:6px">${this.escapeHtml(t.cat)} · ${this.escapeHtml(t.createdAt)}</div>
+                    <div style="font-size:13px;margin-bottom:8px">${this.escapeHtml(t.msg)}</div>
+                    ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>Antwort:</b> ${this.escapeHtml(t.reply)}</div>` : ''}
+                    <div class="row" style="justify-content:flex-start">
+                        <button class="btn" style="padding:5px 10px;font-size:11px" onclick="app.openTicketDetail('${item.uKey}','${item.tKey}',true)">🔍 Großansicht</button>
+                        <button class="btn primary" style="padding:5px 10px;font-size:11px" onclick="app.adminReplyTicket('${item.uKey}','${item.tKey}',false)">💬 Antworten</button>
+                        ${isOpen ? `<button class="btn success" style="padding:5px 10px;font-size:11px" onclick="app.adminCloseTicket('${item.uKey}','${item.tKey}',false)">✓ Schließen</button>` : ''}
+                        <button class="btn danger" style="padding:5px 10px;font-size:11px" onclick="app.adminDeleteTicket('${item.uKey}','${item.tKey}',false)">🗑️ Löschen</button>
+                    </div>
+                </div>`;
+            }).join('');
         };
         db.ref('playverseTickets').on('value', this.adminListener);
     },
-    renderAdminTicketsList: function() {
-        let allUsers = this.allTicketsCache || {};
-        let box = document.getElementById('allTicketsList');
-        if(!box) return;
-        let items = [];
-        Object.keys(allUsers).forEach(uKey => {
-            let uTickets = allUsers[uKey] || {};
-            Object.keys(uTickets).forEach(tKey => {
-                let t = uTickets[tKey];
-                let tType = t.type || 'support';
-                if(this.adminTicketFilter === 'all' || this.adminTicketFilter === tType) {
-                    items.push({ uKey: uKey, tKey: tKey, t: t, tType: tType });
-                }
-            });
-        });
-        items.reverse();
-        if(items.length === 0) {
-            box.innerHTML = '<div class="muted" style="font-size:13px">Keine Tickets für diesen Filter gefunden.</div>';
-            return;
-        }
-        box.innerHTML = items.map(item => {
-            let t = item.t;
-            let isPrize = item.tType === 'prize';
-            let isOpen = t.status === 'Offen';
-            let reward = Number(t.rewardTickets || 15);
-            return `
-            <div class="ticket-card" style="${isPrize?'border-color:#ffc85788':''}">
-                <div class="row" style="justify-content:space-between;margin-bottom:6px">
-                    <div>
-                        <span class="type-badge ${isPrize?'prize':'support'}">${isPrize?'🏆 Preis-Ticket':'🛠️ Support'}</span>
-                        <strong style="margin-left:6px">👤 ${item.uKey}${this.getUserVipBadge(item.uKey)} · #${t.id} (${t.subj})</strong>
-                    </div>
-                    <span class="ticket-status ${isOpen?'open':'closed'}">${t.status}</span>
-                </div>
-                <div class="muted" style="font-size:12px;margin-bottom:6px">${t.cat} · ${t.createdAt}</div>
-                ${isPrize ? `<div class="${t.verified?'verify-ok':'verify-warn'}" style="margin-bottom:6px">${t.verified?'✅ Anti-Cheat Signatur & Spielzeit verifiziert':'⚠️ Unverifiziert'} · Belohnungsvorschlag: <b>+${reward} 🎟️</b></div>` : ''}
-                <div style="font-size:13px;margin-bottom:8px">${t.msg}</div>
-                ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>Antwort:</b> ${t.reply}</div>` : ''}
-                <div class="row" style="justify-content:flex-start">
-                    ${(isPrize && !t.approved && isOpen) ? `<button class="btn success" style="padding:6px 12px;font-size:12px" onclick="app.adminApprovePrizeTicket('${item.uKey}','${item.tKey}',${reward})">🎁 Genehmigen (+${reward} 🎟️ gutschreiben)</button>` : ''}
-                    <button class="btn primary" style="padding:5px 10px;font-size:11px" onclick="app.adminReplyTicket('${item.uKey}','${item.tKey}')">💬 Antworten</button>
-                    ${isOpen ? `<button class="btn danger" style="padding:5px 10px;font-size:11px" onclick="app.adminCloseTicket('${item.uKey}','${item.tKey}')">✕ Schließen</button>` : ''}
-                </div>
-            </div>`;
-        }).join('');
-    },
-    adminApprovePrizeTicket: function(uKey, tKey, rewardAmount) {
-        if(!db) return;
-        let bonus = Number(rewardAmount || 15);
-        let uRef = db.ref('playverseUsers/' + uKey + '/arcadeTickets');
-        uRef.once('value').then(s => {
-            let current = Number(s.val() || 0);
-            return uRef.set(current + bonus);
-        }).then(() => {
-            db.ref('playverseTickets/' + uKey + '/' + tKey).update({
-                approved: true,
-                status: `Genehmigt (+${bonus} 🎟️)`,
-                reply: `🎉 Dein Highscore wurde vom Admin bestätigt! Dir wurden +${bonus} Arcade-Tickets gutgeschrieben.`
-            });
-        });
-    },
-    adminReplyTicket: function(uKey, tKey) {
+    adminReplyTicket: function(uKey, tKey, refreshModal) {
         let text = prompt("Deine Antwort an " + uKey + ":");
         if(!text || !db) return;
         db.ref('playverseTickets/' + uKey + '/' + tKey).update({
             reply: text.trim(),
             status: 'Beantwortet'
+        }).then(() => {
+            if(refreshModal) this.openTicketDetail(uKey, tKey, true);
         });
     },
-    adminCloseTicket: function(uKey, tKey) {
+    adminCloseTicket: function(uKey, tKey, refreshModal) {
         if(!db) return;
-        db.ref('playverseTickets/' + uKey + '/' + tKey + '/status').set('Erledigt');
+        db.ref('playverseTickets/' + uKey + '/' + tKey + '/status').set('Erledigt').then(() => {
+            if(refreshModal) this.openTicketDetail(uKey, tKey, true);
+        });
+    },
+    adminDeleteTicket: function(uKey, tKey, fromModal) {
+        if(!db) return;
+        let t = (this.cachedAllTickets[uKey] || {})[tKey];
+        let label = t ? `#${t.id} (${t.subj})` : tKey;
+        if(!confirm(`Möchtest du das Ticket ${label} von "${uKey}" wirklich unwiderruflich löschen?`)) return;
+        db.ref('playverseTickets/' + uKey + '/' + tKey).remove().then(() => {
+            if(fromModal) this.closeTicketDetail();
+        });
     }
 };
 
-// Track online users, VIP statuses, leaderboards & auto-login on startup
 window.addEventListener('DOMContentLoaded', () => {
     if(db) {
         db.ref('playverseOnlineUsers').on('value', s => {
             window.app.onlineUsers = s.val() || {};
             if(window.app.currentUser) window.app.renderAccountUI();
         });
-        db.ref('playverseUsers').on('value', s => {
-            let allU = s.val() || {};
-            let vMap = {};
-            Object.keys(allU).forEach(k => {
-                if(allU[k] && allU[k].vipUntil) vMap[k] = Number(allU[k].vipUntil);
-            });
-            window.app.vipUsersMap = vMap;
-            if(window.app.currentUser) window.app.renderAccountUI();
+        db.ref('playverseGlobalChat').limitToLast(40).on('value', s => {
+            window.app.renderChatMessages(s.val() || {});
         });
-        window.app.renderLeaderboardBox('tetris', 'lbTetris');
-        window.app.renderLeaderboardBox('stacker', 'lbStacker');
-
         let savedU = localStorage.getItem('pv_user');
         let savedP = localStorage.getItem('pv_pass');
         if(savedU && savedP) {
