@@ -123,5 +123,423 @@ window.solo = (function(){
 
     let rmode='idle',rt0; S.reactionStart = function(){rmode='idle'; document.getElementById('rx').textContent='Start drücken und warten ...'; document.getElementById('rx').style.background='#283550'; document.getElementById('rs').textContent='Wie schnell bist du?';}; S.rxClick = function(){let b=document.getElementById('rx'),s=document.getElementById('rs');if(rmode==='wait'){app.clrAll();rmode='idle';b.textContent='Zu früh!';b.style.background='#283550';}else if(rmode==='go'){s.textContent='Zeit: '+(Date.now()-rt0)+' ms';b.textContent='Stark!';b.style.background='#283550';rmode='idle';}else{rmode='wait';b.style.background='#a63b50';b.textContent='Warte...';s.textContent='Nicht zu früh!';app.stTo(()=>{rmode='go';rt0=Date.now();b.style.background='#237b55';b.textContent='JETZT!';},1200+Math.random()*3500);}};
 
+
+    // =================== V25: TETRIS & STACKER (INKL. ANTI-CHEAT PREIS-TICKETS) ===================
+    let lastProofs = { tetris: null, stacker: null };
+
+    function buildRunProof(gameName, score, detail, startTs, actions) {
+        let uKey = (window.app && window.app.currentUser) ? window.app.currentUser : 'guest';
+        let durationSec = Math.max(2, Math.round((Date.now() - startTs) / 1000));
+        let nonce = 'RN-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+        let sig = window.app.computeRunSignature(uKey, gameName, score, durationSec, actions, nonce);
+        return {
+            userKey: uKey,
+            game: gameName,
+            score: score,
+            detail: detail,
+            durationSec: durationSec,
+            actions: actions,
+            nonce: nonce,
+            sig: sig
+        };
+    }
+
+    S.submitHighscoreTicket = function(kind) {
+        let proof = lastProofs[kind];
+        if(!proof) {
+            alert("Bitte beende zuerst eine Runde mit Punkten!");
+            return;
+        }
+        // Re-sign with current userKey in case user logged in right after Game Over
+        proof.userKey = (window.app && window.app.currentUser) ? window.app.currentUser : 'guest';
+        proof.sig = window.app.computeRunSignature(proof.userKey, proof.game, proof.score, proof.durationSec, proof.actions, proof.nonce);
+        if(kind === 'tetris') {
+            window.app.submitPrizeTicket(proof, 'tetPrizeMsg', 'tetPrizeBtn');
+        } else if(kind === 'stacker') {
+            window.app.submitPrizeTicket(proof, 'stkPrizeMsg', 'stkPrizeBtn');
+        }
+    };
+
+    // --- 1. TETRIS ARCADE (10x20 Grid, Ghost Piece, Touch Pad + Keyboard) ---
+    const TET_COLS = 10, TET_ROWS = 20, TET_SZ = 24;
+    const TET_SHAPES = [
+        { c: '#66e3ff', m: [[1,1,1,1]] },               // I
+        { c: '#ffc857', m: [[1,1],[1,1]] },             // O
+        { c: '#a78bfa', m: [[0,1,0],[1,1,1]] },         // T
+        { c: '#b8f36b', m: [[0,1,1],[1,1,0]] },         // S
+        { c: '#ff526f', m: [[1,1,0],[0,1,1]] },         // Z
+        { c: '#5c7cff', m: [[1,0,0],[1,1,1]] },         // J
+        { c: '#ff9f43', m: [[0,0,1],[1,1,1]] }          // L
+    ];
+    let tetBoard = [], tetPiece = null, tetScore = 0, tetLines = 0, tetLvl = 1;
+    let tetOver = false, tetStartTs = 0, tetActions = 0, tetTimer = null;
+
+    function tetSpawn() {
+        let tpl = TET_SHAPES[Math.floor(Math.random() * TET_SHAPES.length)];
+        let mat = tpl.m.map(r => r.slice());
+        tetPiece = {
+            c: tpl.c,
+            m: mat,
+            x: Math.floor((TET_COLS - mat[0].length) / 2),
+            y: 0
+        };
+        if(tetCollide(tetPiece.x, tetPiece.y, tetPiece.m)) {
+            tetGameOver();
+        }
+    }
+
+    function tetCollide(px, py, mat) {
+        for(let r=0; r<mat.length; r++) {
+            for(let c=0; c<mat[r].length; c++) {
+                if(!mat[r][c]) continue;
+                let nx = px + c, ny = py + r;
+                if(nx < 0 || nx >= TET_COLS || ny >= TET_ROWS) return true;
+                if(ny >= 0 && tetBoard[ny][nx]) return true;
+            }
+        }
+        return false;
+    }
+
+    function tetMerge() {
+        for(let r=0; r<tetPiece.m.length; r++) {
+            for(let c=0; c<tetPiece.m[r].length; c++) {
+                if(tetPiece.m[r][c]) {
+                    let ny = tetPiece.y + r, nx = tetPiece.x + c;
+                    if(ny >= 0 && ny < TET_ROWS && nx >= 0 && nx < TET_COLS) {
+                        tetBoard[ny][nx] = tetPiece.c;
+                    }
+                }
+            }
+        }
+        // Check full lines
+        let cleared = 0;
+        for(let r=TET_ROWS-1; r>=0; r--) {
+            if(tetBoard[r].every(cell => cell !== 0)) {
+                tetBoard.splice(r, 1);
+                tetBoard.unshift(Array(TET_COLS).fill(0));
+                cleared++;
+                r++;
+            }
+        }
+        if(cleared > 0) {
+            const pts = [0, 100, 300, 500, 800];
+            tetScore += (pts[cleared] || 800) * tetLvl;
+            tetLines += cleared;
+            let newLvl = Math.floor(tetLines / 5) + 1;
+            if(newLvl !== tetLvl) {
+                tetLvl = newLvl;
+                tetResetSpeed();
+            }
+        }
+        tetUpdateHud();
+        tetSpawn();
+    }
+
+    function tetResetSpeed() {
+        if(tetTimer) clearInterval(tetTimer);
+        let speed = Math.max(120, 650 - (tetLvl - 1) * 55);
+        tetTimer = app.stInt(tetTick, speed);
+    }
+
+    function tetUpdateHud() {
+        document.getElementById('tetScoreEl').textContent = tetScore;
+        document.getElementById('tetLinesEl').textContent = tetLines;
+        document.getElementById('tetLvlEl').textContent = tetLvl;
+    }
+
+    function tetDraw() {
+        let cvs = document.getElementById('tetcvs');
+        if(!cvs) return;
+        let ctx = cvs.getContext('2d');
+        ctx.fillStyle = '#080c18';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+        // Subtle grid
+        ctx.strokeStyle = '#141d36';
+        ctx.lineWidth = 1;
+        for(let r=0; r<TET_ROWS; r++) {
+            for(let c=0; c<TET_COLS; c++) {
+                ctx.strokeRect(c*TET_SZ, r*TET_SZ, TET_SZ, TET_SZ);
+                if(tetBoard[r][c]) {
+                    tetDrawBlock(ctx, c, r, tetBoard[r][c], 1);
+                }
+            }
+        }
+
+        if(tetPiece && !tetOver) {
+            // Draw Ghost Piece (Landing Preview)
+            let gy = tetPiece.y;
+            while(!tetCollide(tetPiece.x, gy + 1, tetPiece.m)) gy++;
+            for(let r=0; r<tetPiece.m.length; r++) {
+                for(let c=0; c<tetPiece.m[r].length; c++) {
+                    if(tetPiece.m[r][c]) {
+                        tetDrawBlock(ctx, tetPiece.x + c, gy + r, tetPiece.c, 0.22);
+                    }
+                }
+            }
+            // Draw Active Piece
+            for(let r=0; r<tetPiece.m.length; r++) {
+                for(let c=0; c<tetPiece.m[r].length; c++) {
+                    if(tetPiece.m[r][c]) {
+                        tetDrawBlock(ctx, tetPiece.x + c, tetPiece.y + r, tetPiece.c, 1);
+                    }
+                }
+            }
+        }
+    }
+
+    function tetDrawBlock(ctx, x, y, color, alpha) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = color;
+        ctx.fillRect(x*TET_SZ + 1, y*TET_SZ + 1, TET_SZ - 2, TET_SZ - 2);
+        ctx.fillStyle = '#ffffff44';
+        ctx.fillRect(x*TET_SZ + 2, y*TET_SZ + 2, TET_SZ - 4, 4);
+        ctx.restore();
+    }
+
+    function tetTick() {
+        if(tetOver || !tetPiece) return;
+        if(!tetCollide(tetPiece.x, tetPiece.y + 1, tetPiece.m)) {
+            tetPiece.y++;
+        } else {
+            tetMerge();
+        }
+        tetDraw();
+    }
+
+    function tetGameOver() {
+        tetOver = true;
+        app.clrAll();
+        document.getElementById('tets').textContent = `Game Over! Endstand: ${tetScore} Punkte (${tetLines} Reihen)`;
+        if(tetScore > 0) {
+            let bonus = Math.max(2, Math.floor(tetScore / 200));
+            app.addArcadeTickets(bonus);
+            app.saveHighscore('tetris', tetScore, `${tetLines} Reihen · Lvl ${tetLvl}`);
+            lastProofs.tetris = buildRunProof('Tetris', tetScore, `${tetLines} Reihen · Lvl ${tetLvl}`, tetStartTs, Math.max(1, tetActions));
+            let pBox = document.getElementById('tetPrizeBox');
+            let pBtn = document.getElementById('tetPrizeBtn');
+            let pMsg = document.getElementById('tetPrizeMsg');
+            let pInfo = document.getElementById('tetPrizeInfo');
+            if(pBox) {
+                pBox.style.display = 'block';
+                pBtn.disabled = false;
+                pMsg.textContent = '';
+                pInfo.textContent = `Starke Leistung: ${tetScore} Punkte! (+${bonus} 🎟️ Sofort-Bonus erhalten)`;
+            }
+        }
+    }
+
+    S.tetAct = function(act) {
+        if(tetOver || !tetPiece) return;
+        tetActions++;
+        if(act === 'left') {
+            if(!tetCollide(tetPiece.x - 1, tetPiece.y, tetPiece.m)) tetPiece.x--;
+        } else if(act === 'right') {
+            if(!tetCollide(tetPiece.x + 1, tetPiece.y, tetPiece.m)) tetPiece.x++;
+        } else if(act === 'down') {
+            if(!tetCollide(tetPiece.x, tetPiece.y + 1, tetPiece.m)) {
+                tetPiece.y++;
+                tetScore += 1;
+                tetUpdateHud();
+            } else {
+                tetMerge();
+            }
+        } else if(act === 'drop') {
+            let dropped = 0;
+            while(!tetCollide(tetPiece.x, tetPiece.y + 1, tetPiece.m)) {
+                tetPiece.y++;
+                dropped++;
+            }
+            tetScore += dropped * 2;
+            tetMerge();
+        } else if(act === 'rot') {
+            let m = tetPiece.m;
+            let rot = m[0].map((_, idx) => m.map(row => row[idx]).reverse());
+            // Wall-kick support (0, -1, +1)
+            for(let offset of [0, -1, 1, -2, 2]) {
+                if(!tetCollide(tetPiece.x + offset, tetPiece.y, rot)) {
+                    tetPiece.x += offset;
+                    tetPiece.m = rot;
+                    break;
+                }
+            }
+        }
+        tetDraw();
+    };
+
+    S.tetrisKey = function(e) {
+        if(tetOver) return;
+        if(['ArrowLeft','a','A'].includes(e.key)) { e.preventDefault(); S.tetAct('left'); }
+        else if(['ArrowRight','d','D'].includes(e.key)) { e.preventDefault(); S.tetAct('right'); }
+        else if(['ArrowDown','s','S'].includes(e.key)) { e.preventDefault(); S.tetAct('down'); }
+        else if(['ArrowUp','w','W'].includes(e.key)) { e.preventDefault(); S.tetAct('rot'); }
+        else if(e.key === ' ') { e.preventDefault(); S.tetAct('drop'); }
+    };
+
+    S.tetrisStart = function() {
+        tetBoard = Array.from({length: TET_ROWS}, () => Array(TET_COLS).fill(0));
+        tetScore = 0; tetLines = 0; tetLvl = 1; tetOver = false;
+        tetStartTs = Date.now(); tetActions = 0; lastProofs.tetris = null;
+        let pBox = document.getElementById('tetPrizeBox');
+        if(pBox) pBox.style.display = 'none';
+        document.getElementById('tets').textContent = 'Staple die Blöcke & lösche Reihen!';
+        tetUpdateHud();
+        tetSpawn();
+        tetDraw();
+        tetResetSpeed();
+        window.activeKeyListener = S.tetrisKey;
+        document.addEventListener('keydown', S.tetrisKey);
+    };
+
+    // --- 2. STACKER ARCADE (7x15 Grid, Speed Scaling, Block Trimming, Jackpot at Row 15) ---
+    const STK_COLS = 7, STK_ROWS = 15, STK_W = 40, STK_H = 28;
+    let stkGrid = [], stkRow = 0, stkX = 2, stkWidth = 3, stkDir = 1;
+    let stkScore = 0, stkOver = false, stkTimer = null, stkStartTs = 0, stkActions = 0;
+
+    function stkUpdateHud() {
+        document.getElementById('stkScoreEl').textContent = stkScore;
+        document.getElementById('stkRowEl').textContent = `${Math.min(STK_ROWS, stkRow + 1)} / ${STK_ROWS}`;
+        document.getElementById('stkBlkEl').textContent = stkWidth;
+    }
+
+    function stkSetSpeed() {
+        if(stkTimer) clearInterval(stkTimer);
+        let speed = Math.max(55, 250 - stkRow * 13);
+        stkTimer = app.stInt(stkStep, speed);
+    }
+
+    function stkStep() {
+        if(stkOver) return;
+        stkX += stkDir;
+        if(stkX + stkWidth > STK_COLS) {
+            stkX = STK_COLS - stkWidth;
+            stkDir = -1;
+        } else if(stkX < 0) {
+            stkX = 0;
+            stkDir = 1;
+        }
+        stkDraw();
+    }
+
+    function stkDraw() {
+        let cvs = document.getElementById('stkcvs');
+        if(!cvs) return;
+        let ctx = cvs.getContext('2d');
+        ctx.fillStyle = '#080c18';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
+
+        for(let r=0; r<STK_ROWS; r++) {
+            let drawY = (STK_ROWS - 1 - r) * STK_H;
+            // Highlight Jackpot (row 14) and Minor Prize (row 9) lines
+            if(r === 14) {
+                ctx.fillStyle = '#ffc85718';
+                ctx.fillRect(0, drawY, cvs.width, STK_H);
+            } else if(r === 9) {
+                ctx.fillStyle = '#66e3ff14';
+                ctx.fillRect(0, drawY, cvs.width, STK_H);
+            }
+            for(let c=0; c<STK_COLS; c++) {
+                let drawX = c * STK_W;
+                ctx.strokeStyle = '#182342';
+                ctx.strokeRect(drawX, drawY, STK_W, STK_H);
+
+                let isPlaced = stkGrid[r][c];
+                let isMoving = (!stkOver && r === stkRow && c >= stkX && c < stkX + stkWidth);
+                if(isPlaced || isMoving) {
+                    ctx.fillStyle = (r === 14) ? '#ffc857' : (r >= 9 ? '#66e3ff' : '#b8f36b');
+                    ctx.fillRect(drawX + 3, drawY + 3, STK_W - 6, STK_H - 6);
+                }
+            }
+        }
+    }
+
+    function stkFinish(wonJackpot) {
+        stkOver = true;
+        app.clrAll();
+        stkDraw();
+        let detail = wonJackpot ? `JACKPOT (Reihe 15/15)` : `Reihe ${stkRow}/15 erreicht`;
+        document.getElementById('stks').textContent = wonJackpot
+            ? `🎉 MEGA JACKPOT! Du hast Reihe 15 erreicht! (${stkScore} Punkte)`
+            : `Vorbei in Reihe ${stkRow + 1}! Endstand: ${stkScore} Punkte`;
+
+        if(stkScore > 0) {
+            let bonus = wonJackpot ? 25 : Math.max(2, Math.floor(stkScore / 150));
+            app.addArcadeTickets(bonus);
+            app.saveHighscore('stacker', stkScore, detail);
+            lastProofs.stacker = buildRunProof('Stacker', stkScore, detail, stkStartTs, Math.max(1, stkActions));
+            let pBox = document.getElementById('stkPrizeBox');
+            let pBtn = document.getElementById('stkPrizeBtn');
+            let pMsg = document.getElementById('stkPrizeMsg');
+            let pInfo = document.getElementById('stkPrizeInfo');
+            if(pBox) {
+                pBox.style.display = 'block';
+                pBtn.disabled = false;
+                pMsg.textContent = '';
+                pInfo.textContent = `${detail} · ${stkScore} Punkte! (+${bonus} 🎟️ Sofort-Bonus erhalten)`;
+            }
+        }
+    }
+
+    S.stkTap = function() {
+        if(stkOver) return;
+        stkActions++;
+        // Place blocks in current row & trim unsupported ones
+        let survived = [];
+        for(let c = stkX; c < stkX + stkWidth; c++) {
+            if(stkRow === 0 || stkGrid[stkRow - 1][c]) {
+                stkGrid[stkRow][c] = 1;
+                survived.push(c);
+            }
+        }
+        if(survived.length === 0) {
+            stkFinish(false);
+            return;
+        }
+        stkWidth = survived.length;
+        stkScore += (stkRow + 1) * 50 + stkWidth * 25;
+
+        // Classic Arcade Stacker limits: row 5+ max 2 blocks, row 10+ max 1 block
+        if(stkRow >= 4 && stkWidth > 2) stkWidth = 2;
+        if(stkRow >= 9 && stkWidth > 1) stkWidth = 1;
+
+        if(stkRow === STK_ROWS - 1) {
+            stkScore += 1000; // Jackpot Bonus!
+            stkUpdateHud();
+            stkFinish(true);
+            return;
+        }
+
+        stkRow++;
+        stkX = Math.floor(Math.random() * (STK_COLS - stkWidth + 1));
+        stkDir = Math.random() > 0.5 ? 1 : -1;
+        stkUpdateHud();
+        stkDraw();
+        stkSetSpeed();
+    };
+
+    S.stackerKey = function(e) {
+        if(stkOver) return;
+        if(e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            S.stkTap();
+        }
+    };
+
+    S.stackerStart = function() {
+        stkGrid = Array.from({length: STK_ROWS}, () => Array(STK_COLS).fill(0));
+        stkRow = 0; stkWidth = 3; stkX = 2; stkDir = 1;
+        stkScore = 0; stkOver = false;
+        stkStartTs = Date.now(); stkActions = 0; lastProofs.stacker = null;
+        let pBox = document.getElementById('stkPrizeBox');
+        if(pBox) pBox.style.display = 'none';
+        document.getElementById('stks').textContent = 'Stoppe die Blöcke passgenau übereinander!';
+        stkUpdateHud();
+        stkDraw();
+        stkSetSpeed();
+        window.activeKeyListener = S.stackerKey;
+        document.addEventListener('keydown', S.stackerKey);
+    };
+
     return S;
 })();

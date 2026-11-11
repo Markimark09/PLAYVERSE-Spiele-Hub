@@ -18,7 +18,7 @@ window.multi = (function(){
     const multiTexts=["PLAYVERSE IST SUPER","SCHNELLER TIPPEN GEWINNT","ONLINE GAMING MACHT SPASS"];
 
     M.createRoom = function(){
-      if(!ready())return; M.player='p1'; M.playerName=document.getElementById('hn').value.trim()||'Spieler 1'; M.roomCode=Math.random().toString(36).slice(2,8).toUpperCase(); M.roomRef=db.ref('playverseRooms/'+M.roomCode);
+      if(!ready())return; M.player='p1'; M.playerName=document.getElementById('hn').value.trim()||'Spieler 1'; if(window.app&&window.app.userData&&window.app.isVip(window.app.userData.vipUntil)&&!M.playerName.startsWith('👑')) M.playerName='👑 '+M.playerName; M.roomCode=Math.random().toString(36).slice(2,8).toUpperCase(); M.roomRef=db.ref('playverseRooms/'+M.roomCode);
       M.roomRef.onDisconnect().remove();
       let d = {game:M.gameType, players:{p1:M.playerName}, turn:'p1', status:'Warte auf Spieler 2'};
       if(M.gameType==='chess') d.fen='start';
@@ -45,7 +45,7 @@ window.multi = (function(){
     };
 
     M.joinRoom = function(){
-      if(!ready())return; M.roomCode=document.getElementById('jc').value.trim().toUpperCase(); M.playerName=document.getElementById('jn').value.trim()||'Spieler 2'; M.roomRef=db.ref('playverseRooms/'+M.roomCode);
+      if(!ready())return; M.roomCode=document.getElementById('jc').value.trim().toUpperCase(); M.playerName=document.getElementById('jn').value.trim()||'Spieler 2'; if(window.app&&window.app.userData&&window.app.isVip(window.app.userData.vipUntil)&&!M.playerName.startsWith('👑')) M.playerName='👑 '+M.playerName; M.roomRef=db.ref('playverseRooms/'+M.roomCode);
       M.roomRef.once('value').then(s=>{
         if(!s.exists()) return alert('Raum nicht gefunden.');
         let d = s.val();

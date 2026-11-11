@@ -1,11 +1,13 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#090b18"><meta name="apple-mobile-web-app-capable" content="yes"><title>PLAYVERSE — V24 Mobile, Tablet & Node.js Edition</title>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#090b18"><meta name="apple-mobile-web-app-capable" content="yes"><title>PLAYVERSE — V25 Ultimate VIP, Tetris & Stacker Edition</title>
 <link rel="stylesheet" href="css/style.css">
 </head><body>
 <header>
   <div class="brand" onclick="app.home()">PLAY<span>VERSE</span> ✦</div>
   <div class="header-right">
     <div class="pill"><div class="blob"></div><span id="onlineCount">1</span> Online</div>
+    <div class="pill vip-pill" id="headerVipPill" style="display:none;cursor:pointer" onclick="app.openModal('tickets')">👑 VIP</div>
     <div class="pill ticket-pill" id="headerTicketPill" style="display:none;cursor:pointer" onclick="app.openModal('tickets')">🎟️ <span id="headerTickets">0</span></div>
+    <button class="btn" onclick="app.openModal('leaders')">🏆 Highscores</button>
     <button class="btn" onclick="app.openModal('friends')">👥 Freunde <span id="friendReqBadge" style="display:none;background:#ff526f;color:#fff;padding:1px 6px;border-radius:10px;font-size:11px;margin-left:4px">0</span></button>
     <button class="btn" onclick="app.openModal('tickets')">🎫 Tickets</button>
     <button class="btn primary" id="headerAccBtn" onclick="app.openModal('acc')">👤 Login / Account</button>
@@ -15,18 +17,68 @@
 <section id="home" class="view active">
   <div class="hero">
     <div>
-      <div class="eyebrow">DEIN SPIELPLATZ · V20 ULTIMATE</div>
+      <div class="eyebrow">DEIN SPIELPLATZ · V25 ULTIMATE VIP EDITION</div>
       <h1>Play more.<br><span style="color:var(--cyan)">With Friends.</span></h1>
-      <p>54 Spiele mit eigenem Account-System, Freundesliste, 1-Klick Live-Einladungen sowie Support- & Arcade-Tickets!</p>
+      <p>56 Spiele inkl. TETRIS & STACKER, Preis-Ticket Highscore-System, 30-Tage VIP-Rang, Freundesliste & Live-Einladungen!</p>
     </div>
     <div class="heroart">🎮</div>
   </div>
   <div class="tabs">
-    <button class="tab active" id="btn-solo" onclick="app.switchTab('solo')">Lokal & Solo (34)</button>
+    <button class="tab active" id="btn-solo" onclick="app.switchTab('solo')">Lokal & Solo (36)</button>
     <button class="tab" id="btn-multi" onclick="app.switchTab('multi')">Mehrspieler Online (20)</button>
   </div>
-  <div id="grid-solo" class="grid tab-content active"><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo</span><div><div class="ico">✏️</div><h3>Kreuzworträtsel</h3><p>Fülle das 5x5 Gitter korrekt aus.</p></div><button class="btn primary" onclick="app.startSolo('cw')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🔤</div><h3>Hangman</h3><p>Errate das Wort, bevor du hängst.</p></div><button class="btn primary" onclick="app.startSolo('hm')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">🎯</div><h3>Aim Trainer</h3><p>Klicke die Ziele so schnell du kannst.</p></div><button class="btn primary" onclick="app.startSolo('aim')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧮</div><h3>Kopfrechnen</h3><p>Löse Matheaufgaben gegen die Zeit.</p></div><button class="btn primary" onclick="app.startSolo('math')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🎰</div><h3>Einarmiger Bandit</h3><p>Knacke den Jackpot mit 3 gleichen.</p></div><button class="btn primary" onclick="app.startSolo('slot')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🪙</div><h3>Münzwurf</h3><p>Kopf oder Zahl? Die schnelle Entscheidung.</p></div><button class="btn primary" onclick="app.startSolo('coin')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">🎱</div><h3>Magic 8-Ball</h3><p>Stelle eine Ja/Nein Frage an die Kugel.</p></div><button class="btn primary" onclick="app.startSolo('m8')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">⏱️</div><h3>10s Timer</h3><p>Stoppe die Zeit exakt bei 10.00 Sekunden.</p></div><button class="btn primary" onclick="app.startSolo('timer')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🍪</div><h3>Cookie Clicker</h3><p>Klicke den Keks und kaufe Upgrades.</p></div><button class="btn primary" onclick="app.startSolo('clicker')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧩</div><h3>Schiebepuzzle</h3><p>Ordne die Zahlen von 1 bis 15 im Raster.</p></div><button class="btn primary" onclick="app.startSolo('puz')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">⌨️</div><h3>Tipp-Speed</h3><p>Tippe den Satz extrem schnell ab.</p></div><button class="btn primary" onclick="app.startSolo('type')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🎨</div><h3>Farbfinder</h3><p>Finde das Quadrat mit abweichender Farbe.</p></div><button class="btn primary" onclick="app.startSolo('odd')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🃏</div><h3>Höher/Tiefer</h3><p>Ist die nächste Zahl höher oder tiefer?</p></div><button class="btn primary" onclick="app.startSolo('hilow')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">♠️</div><h3>Blackjack</h3><p>Ziehe Karten, überschreite nicht 21!</p></div><button class="btn primary" onclick="app.startSolo('bj')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">⚡</div><h3>Speed Klicker</h3><p>Klicke 30 Mal so schnell wie möglich!</p></div><button class="btn primary" onclick="app.startSolo('speed')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo</span><div><div class="ico">❓</div><h3>Mini Trivia</h3><p>Teste dein Wissen mit kniffligen Fragen.</p></div><button class="btn primary" onclick="app.startSolo('trivia')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🧠</div><h3>Stroop-Test</h3><p>Klicke die Farbe, nicht das geschriebene Wort.</p></div><button class="btn primary" onclick="app.startSolo('stroop')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">🟦</div><h3>Memory-Matrix</h3><p>Merke dir die Muster und klicke sie nach.</p></div><button class="btn primary" onclick="app.startSolo('memmat')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🦖</div><h3>Dino Run</h3><p>Springe über die Hindernisse.</p></div><button class="btn primary" onclick="app.startSolo('dino')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧺</div><h3>Catch it</h3><p>Fange alle fallenden Blöcke auf.</p></div><button class="btn primary" onclick="app.startSolo('catch')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">📝</div><h3>Wort-Rätsel</h3><p>Errate das Wort in 6 Versuchen.</p></div><button class="btn primary" onclick="app.startSolo('wordle')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🐍</div><h3>Snake</h3><p>Sammle das Futter und werde länger.</p></div><button class="btn primary" onclick="app.startSolo('snake')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">💣</div><h3>Minesweeper</h3><p>Finde die Minen (Rechtsklick = Flagge).</p></div><button class="btn primary" onclick="app.startSolo('mines')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo vs PC</span><div><div class="ico">✌️</div><h3>Schnick Schnack</h3><p>Schere, Stein, Papier gegen den Bot.</p></div><button class="btn primary" onclick="app.startSolo('rps')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🧠</div><h3>Memory</h3><p>Finde alle acht Kartenpaare.</p></div><button class="btn primary" onclick="app.startSolo('memory')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo vs PC</span><div><div class="ico">🎲</div><h3>Würfel-Duell</h3><p>Würfle gegen den Computer.</p></div><button class="btn primary" onclick="app.startSolo('dice')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">2 Spieler</span><div><div class="ico">🔴</div><h3>Vier gewinnt (Lokal)</h3><p>Lokal an einem Gerät: Verbinde 4 Steine.</p></div><button class="btn primary" onclick="app.startSolo('c4')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">⭕</div><h3>Tic Tac Toe (Lokal)</h3><p>Lokal an einem Gerät: Drei in einer Reihe.</p></div><button class="btn primary" onclick="app.startSolo('ttt')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🐦</div><h3>Flappy Block</h3><p>Tippe, um durch die Rohre zu fliegen.</p></div><button class="btn primary" onclick="app.startSolo('flappy')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">2 Spieler</span><div><div class="ico">🏓</div><h3>Retro Pong (Lokal)</h3><p>Lokal an einer Tastatur (W/S vs Pfeile).</p></div><button class="btn primary" onclick="app.startSolo('pong')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🎨</div><h3>Farb-Echo</h3><p>Merke dir die Farbfolge (Simon Says).</p></div><button class="btn primary" onclick="app.startSolo('simon')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🔨</div><h3>Maulwurf-Jagd</h3><p>Hau den Maulwurf! Wer schafft am meisten?</p></div><button class="btn primary" onclick="app.startSolo('mole')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🔢</div><h3>Zahlenjagd</h3><p>Errate die geheime Zahl (1-100).</p></div><button class="btn primary" onclick="app.startSolo('guess')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">⚡</div><h3>Reaktionstest</h3><p>Warte auf Grün und teste deine Reflexe.</p></div><button class="btn primary" onclick="app.startSolo('reaction')">Spielen ↗</button></article></div>
+  <div id="grid-solo" class="grid tab-content active"><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo · Preis-Tickets</span><div><div class="ico">🧱</div><h3>Tetris Arcade</h3><p>Staple Tetrominos, lösche Reihen & reiche deinen Highscore für Tickets ein!</p></div><button class="btn primary" onclick="app.startSolo('tetris')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo · Preis-Tickets</span><div><div class="ico">🏗️</div><h3>Stacker Arcade</h3><p>Stoppe die Blöcke exakt aufeinander bis zum Jackpot in Reihe 15!</p></div><button class="btn primary" onclick="app.startSolo('stacker')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo</span><div><div class="ico">✏️</div><h3>Kreuzworträtsel</h3><p>Fülle das 5x5 Gitter korrekt aus.</p></div><button class="btn primary" onclick="app.startSolo('cw')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🔤</div><h3>Hangman</h3><p>Errate das Wort, bevor du hängst.</p></div><button class="btn primary" onclick="app.startSolo('hm')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">🎯</div><h3>Aim Trainer</h3><p>Klicke die Ziele so schnell du kannst.</p></div><button class="btn primary" onclick="app.startSolo('aim')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧮</div><h3>Kopfrechnen</h3><p>Löse Matheaufgaben gegen die Zeit.</p></div><button class="btn primary" onclick="app.startSolo('math')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🎰</div><h3>Einarmiger Bandit</h3><p>Knacke den Jackpot mit 3 gleichen.</p></div><button class="btn primary" onclick="app.startSolo('slot')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🪙</div><h3>Münzwurf</h3><p>Kopf oder Zahl? Die schnelle Entscheidung.</p></div><button class="btn primary" onclick="app.startSolo('coin')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">🎱</div><h3>Magic 8-Ball</h3><p>Stelle eine Ja/Nein Frage an die Kugel.</p></div><button class="btn primary" onclick="app.startSolo('m8')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">⏱️</div><h3>10s Timer</h3><p>Stoppe die Zeit exakt bei 10.00 Sekunden.</p></div><button class="btn primary" onclick="app.startSolo('timer')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🍪</div><h3>Cookie Clicker</h3><p>Klicke den Keks und kaufe Upgrades.</p></div><button class="btn primary" onclick="app.startSolo('clicker')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧩</div><h3>Schiebepuzzle</h3><p>Ordne die Zahlen von 1 bis 15 im Raster.</p></div><button class="btn primary" onclick="app.startSolo('puz')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">⌨️</div><h3>Tipp-Speed</h3><p>Tippe den Satz extrem schnell ab.</p></div><button class="btn primary" onclick="app.startSolo('type')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🎨</div><h3>Farbfinder</h3><p>Finde das Quadrat mit abweichender Farbe.</p></div><button class="btn primary" onclick="app.startSolo('odd')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🃏</div><h3>Höher/Tiefer</h3><p>Ist die nächste Zahl höher oder tiefer?</p></div><button class="btn primary" onclick="app.startSolo('hilow')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">Solo</span><div><div class="ico">♠️</div><h3>Blackjack</h3><p>Ziehe Karten, überschreite nicht 21!</p></div><button class="btn primary" onclick="app.startSolo('bj')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">⚡</div><h3>Speed Klicker</h3><p>Klicke 30 Mal so schnell wie möglich!</p></div><button class="btn primary" onclick="app.startSolo('speed')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo</span><div><div class="ico">❓</div><h3>Mini Trivia</h3><p>Teste dein Wissen mit kniffligen Fragen.</p></div><button class="btn primary" onclick="app.startSolo('trivia')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🧠</div><h3>Stroop-Test</h3><p>Klicke die Farbe, nicht das geschriebene Wort.</p></div><button class="btn primary" onclick="app.startSolo('stroop')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">🟦</div><h3>Memory-Matrix</h3><p>Merke dir die Muster und klicke sie nach.</p></div><button class="btn primary" onclick="app.startSolo('memmat')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🦖</div><h3>Dino Run</h3><p>Springe über die Hindernisse.</p></div><button class="btn primary" onclick="app.startSolo('dino')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🧺</div><h3>Catch it</h3><p>Fange alle fallenden Blöcke auf.</p></div><button class="btn primary" onclick="app.startSolo('catch')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">📝</div><h3>Wort-Rätsel</h3><p>Errate das Wort in 6 Versuchen.</p></div><button class="btn primary" onclick="app.startSolo('wordle')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🐍</div><h3>Snake</h3><p>Sammle das Futter und werde länger.</p></div><button class="btn primary" onclick="app.startSolo('snake')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">💣</div><h3>Minesweeper</h3><p>Finde die Minen (Rechtsklick = Flagge).</p></div><button class="btn primary" onclick="app.startSolo('mines')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo vs PC</span><div><div class="ico">✌️</div><h3>Schnick Schnack</h3><p>Schere, Stein, Papier gegen den Bot.</p></div><button class="btn primary" onclick="app.startSolo('rps')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">Solo</span><div><div class="ico">🧠</div><h3>Memory</h3><p>Finde alle acht Kartenpaare.</p></div><button class="btn primary" onclick="app.startSolo('memory')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">Solo vs PC</span><div><div class="ico">🎲</div><h3>Würfel-Duell</h3><p>Würfle gegen den Computer.</p></div><button class="btn primary" onclick="app.startSolo('dice')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">2 Spieler</span><div><div class="ico">🔴</div><h3>Vier gewinnt (Lokal)</h3><p>Lokal an einem Gerät: Verbinde 4 Steine.</p></div><button class="btn primary" onclick="app.startSolo('c4')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">⭕</div><h3>Tic Tac Toe (Lokal)</h3><p>Lokal an einem Gerät: Drei in einer Reihe.</p></div><button class="btn primary" onclick="app.startSolo('ttt')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">Solo</span><div><div class="ico">🐦</div><h3>Flappy Block</h3><p>Tippe, um durch die Rohre zu fliegen.</p></div><button class="btn primary" onclick="app.startSolo('flappy')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">2 Spieler</span><div><div class="ico">🏓</div><h3>Retro Pong (Lokal)</h3><p>Lokal an einer Tastatur (W/S vs Pfeile).</p></div><button class="btn primary" onclick="app.startSolo('pong')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🎨</div><h3>Farb-Echo</h3><p>Merke dir die Farbfolge (Simon Says).</p></div><button class="btn primary" onclick="app.startSolo('simon')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">Solo</span><div><div class="ico">🔨</div><h3>Maulwurf-Jagd</h3><p>Hau den Maulwurf! Wer schafft am meisten?</p></div><button class="btn primary" onclick="app.startSolo('mole')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">Solo</span><div><div class="ico">🔢</div><h3>Zahlenjagd</h3><p>Errate die geheime Zahl (1-100).</p></div><button class="btn primary" onclick="app.startSolo('guess')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">Solo</span><div><div class="ico">⚡</div><h3>Reaktionstest</h3><p>Warte auf Grün und teste deine Reflexe.</p></div><button class="btn primary" onclick="app.startSolo('reaction')">Spielen ↗</button></article></div>
   <div id="grid-multi" class="grid tab-content"><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">4 Spieler</span><div><div class="ico">🟩</div><h3>Farb-Krieg</h3><p>Bis zu 4 Spieler! Färbt die meisten Felder in 30s!</p></div><button class="btn primary" onclick="app.startMulti('colorwar')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">2 Spieler</span><div><div class="ico">🪙</div><h3>Münzwurf Online</h3><p>Beide tippen auf Kopf oder Zahl.</p></div><button class="btn primary" onclick="app.startMulti('coin_o')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">🔢</div><h3>Zahlenjagd Online</h3><p>Wer errät die Geheimzahl zuerst?</p></div><button class="btn primary" onclick="app.startMulti('guess_o')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">2 Spieler</span><div><div class="ico">⚡</div><h3>Reaktions-Duell</h3><p>Wer drückt schneller den Button?</p></div><button class="btn primary" onclick="app.startMulti('react_o')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">2 Spieler</span><div><div class="ico">🖱️</div><h3>Klick-Rennen</h3><p>Wer schafft zuerst 50 Klicks?</p></div><button class="btn primary" onclick="app.startMulti('click_o')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">2 Spieler</span><div><div class="ico">⌨️</div><h3>Tipp-Rennen</h3><p>Wer tippt den Text am schnellsten?</p></div><button class="btn primary" onclick="app.startMulti('type_o')">Spielen ↗</button></article><article class="card" style="--glow:#e6b72d"><span class="player-badge" style="--badge-clr:#e6b72d">2 Spieler</span><div><div class="ico">🃏</div><h3>Karten-Krieg</h3><p>Wer zieht die höhere Karte?</p></div><button class="btn primary" onclick="app.startMulti('war_o')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">🗺️</div><h3>Schatzsuche</h3><p>Finde den Schatz im 5x5 Raster zuerst.</p></div><button class="btn primary" onclick="app.startMulti('treasure_o')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">2 Spieler</span><div><div class="ico">🧮</div><h3>Mathe-Duell</h3><p>Wer löst die Kopfrechenaufgabe schneller?</p></div><button class="btn primary" onclick="app.startMulti('math_o')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">2 Spieler</span><div><div class="ico">🎰</div><h3>Roulette Online</h3><p>Setze auf Rot oder Schwarz.</p></div><button class="btn primary" onclick="app.startMulti('roulette_o')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">2 Spieler</span><div><div class="ico">🎨</div><h3>Farb-Match</h3><p>Klicke, sobald beide Farben übereinstimmen.</p></div><button class="btn primary" onclick="app.startMulti('color_o')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">2 Spieler</span><div><div class="ico">🚢</div><h3>Schiffe versenken</h3><p>Verstecke Schiffe und errate die des Gegners.</p></div><button class="btn primary" onclick="app.startMulti('bato')">Spielen ↗</button></article><article class="card" style="--glow:#b8f36b"><span class="player-badge" style="--badge-clr:#b8f36b">2 Spieler</span><div><div class="ico">✌️</div><h3>Schnick Schnack Online</h3><p>Spiele das Duell synchron gegen einen Freund.</p></div><button class="btn primary" onclick="app.startMulti('rpso')">Spielen ↗</button></article><article class="card" style="--glow:#ffc857"><span class="player-badge" style="--badge-clr:#ffc857">2 Spieler</span><div><div class="ico">🎲</div><h3>Würfel-Duell Online</h3><p>Wer würfelt die höhere Zahl?</p></div><button class="btn primary" onclick="app.startMulti('diceo')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">🔢</div><h3>Bingo Online</h3><p>Sei der erste mit 5 Treffern.</p></div><button class="btn primary" onclick="app.startMulti('bingo')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">2 Spieler</span><div><div class="ico">🏁</div><h3>Wort-Scramble</h3><p>Wer entschlüsselt das Wort als Erster?</p></div><button class="btn primary" onclick="app.startMulti('wordo')">Spielen ↗</button></article><article class="card" style="--glow:#ff526f"><span class="player-badge" style="--badge-clr:#ff526f">2 Spieler</span><div><div class="ico">🔴</div><h3>Vier gewinnt Online</h3><p>Spiele den Klassiker online im Raum.</p></div><button class="btn primary" onclick="app.startMulti('c4o')">Spielen ↗</button></article><article class="card" style="--glow:#66e3ff"><span class="player-badge" style="--badge-clr:#66e3ff">2 Spieler</span><div><div class="ico">⭕</div><h3>Tic Tac Toe Online</h3><p>Drei in einer Reihe gegen deinen Freund.</p></div><button class="btn primary" onclick="app.startMulti('ttto')">Spielen ↗</button></article><article class="card" style="--glow:#ff80bf"><span class="player-badge" style="--badge-clr:#ff80bf">2 Spieler</span><div><div class="ico">🃏</div><h3>UNO Online</h3><p>Das Kartenspiel synchron im Privat-Raum.</p></div><button class="btn primary" onclick="app.startMulti('uno')">Spielen ↗</button></article><article class="card" style="--glow:#a78bfa"><span class="player-badge" style="--badge-clr:#a78bfa">2 Spieler</span><div><div class="ico">♟️</div><h3>Schach Online</h3><p>Eine Partie Schach in Echtzeit.</p></div><button class="btn primary" onclick="app.startMulti('chess')">Spielen ↗</button></article></div>
+</section>
+<section id="tetris" class="view">
+  <div class="toolbar"><h2>🧱 Tetris Arcade (Preis-Ticket Game)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div>
+  <div class="panel">
+    <div class="hud-bar">
+      <div class="hud-item"><span>Punkte</span><strong id="tetScoreEl">0</strong></div>
+      <div class="hud-item"><span>Reihen</span><strong id="tetLinesEl">0</strong></div>
+      <div class="hud-item"><span>Level</span><strong id="tetLvlEl">1</strong></div>
+    </div>
+    <div id="tets" class="status">Steuere mit Touch-Buttons oder Pfeiltasten / WASD!</div>
+    <canvas id="tetcvs" width="240" height="480"></canvas>
+    <div class="tetris-pad">
+      <button type="button" onpointerdown="solo.tetAct('left')" title="Links">⬅️</button>
+      <button type="button" onpointerdown="solo.tetAct('rot')" title="Drehen">🔄</button>
+      <button type="button" onpointerdown="solo.tetAct('right')" title="Rechts">➡️</button>
+      <button type="button" onpointerdown="solo.tetAct('down')" title="Runter">⬇️</button>
+      <button type="button" onpointerdown="solo.tetAct('drop')" title="Hard Drop">⏬</button>
+    </div>
+    <div id="tetPrizeBox" class="prize-submit-box">
+      <div style="font-weight:700;color:var(--gold);margin-bottom:6px" id="tetPrizeInfo">Runde beendet!</div>
+      <button class="btn primary" id="tetPrizeBtn" onclick="solo.submitHighscoreTicket('tetris')">🏆 Highscore als Preis-Ticket einreichen</button>
+      <div id="tetPrizeMsg" style="font-size:12px;color:var(--lime);margin-top:6px"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn primary" onclick="app.startSolo('tetris')">Neue Runde starten</button>
+      <button class="btn" onclick="app.openModal('leaders')">🏆 Bestenliste</button>
+    </div>
+  </div>
+</section>
+<section id="stacker" class="view">
+  <div class="toolbar"><h2>🏗️ Stacker Arcade (Preis-Ticket Game)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div>
+  <div class="panel">
+    <div class="hud-bar">
+      <div class="hud-item"><span>Punkte</span><strong id="stkScoreEl">0</strong></div>
+      <div class="hud-item"><span>Höhe / Reihe</span><strong id="stkRowEl">1 / 15</strong></div>
+      <div class="hud-item"><span>Blöcke</span><strong id="stkBlkEl">3</strong></div>
+    </div>
+    <div id="stks" class="status">Tippe auf STOPP oder direkt aufs Feld, um den Stapel zu setzen!</div>
+    <canvas id="stkcvs" width="280" height="420" style="cursor:pointer" onpointerdown="solo.stkTap()"></canvas>
+    <button type="button" class="btn primary stacker-tap-btn" id="stkTapBtn" onpointerdown="solo.stkTap()">🧱 STOPP / STAPELN (TAP)</button>
+    <div id="stkPrizeBox" class="prize-submit-box">
+      <div style="font-weight:700;color:var(--gold);margin-bottom:6px" id="stkPrizeInfo">Runde beendet!</div>
+      <button class="btn primary" id="stkPrizeBtn" onclick="solo.submitHighscoreTicket('stacker')">🏆 Highscore als Preis-Ticket einreichen</button>
+      <div id="stkPrizeMsg" style="font-size:12px;color:var(--lime);margin-top:6px"></div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" onclick="app.startSolo('stacker')">Neu starten</button>
+      <button class="btn" onclick="app.openModal('leaders')">🏆 Bestenliste</button>
+    </div>
+  </div>
 </section>
 <section id="cw" class="view"><div class="toolbar"><h2>Kreuzworträtsel (Solo)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel"><div id="cws" class="status">Fülle die 5 Wörter aus! (Pfeiltasten)</div><div id="cwg" class="grid5x5"></div><button class="btn primary" style="margin-top:15px" onclick="solo.cwCheck()">Prüfen</button></div></section>
 <section id="hm" class="view"><div class="toolbar"><h2>Hangman (Solo)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel"><div id="hms" class="status">Rate das Wort</div><div class="big" id="hmw" style="letter-spacing:10px"></div><div id="hmkb" class="row"></div><button class="btn primary" style="margin-top:20px" onclick="app.startSolo('hm')">Neustart</button></div></section>
@@ -108,25 +160,26 @@
 
 </main>
 
-<!-- ACCOUNT / FRIENDS / TICKET MODAL -->
+<!-- ACCOUNT / FRIENDS / TICKET / VIP / LEADERBOARD MODAL -->
 <div id="hubModal" class="modal-backdrop" onclick="if(event.target===this)app.closeModal()">
   <div class="modal">
     <div class="modal-head">
-      <h3 id="modalTitle">Account & Community</h3>
+      <h3 id="modalTitle">Playverse Hub · VIP & Community</h3>
       <button class="btn" onclick="app.closeModal()">✕</button>
     </div>
 
     <!-- SUBTABS -->
     <div class="subtabs">
       <button class="subtab active" id="st-acc" onclick="app.openSubTab('acc')">👤 Account</button>
-      <button class="subtab" id="st-friends" onclick="app.openSubTab('friends')">👥 Freunde & Einladen</button>
-      <button class="subtab" id="st-tickets" onclick="app.openSubTab('tickets')">🎫 Ticket-System</button>
+      <button class="subtab" id="st-friends" onclick="app.openSubTab('friends')">👥 Freunde</button>
+      <button class="subtab" id="st-tickets" onclick="app.openSubTab('tickets')">🎫 Tickets & VIP</button>
+      <button class="subtab" id="st-leaders" onclick="app.openSubTab('leaders')">🏆 Bestenlisten</button>
     </div>
 
     <!-- TAB 1: ACCOUNT -->
     <div id="pane-acc" class="subpane">
       <div id="authGuest">
-        <p class="muted" style="font-size:13px">Erstelle kostenlos einen Account oder logge dich ein, um Freunde hinzuzufügen, 1-Klick-Einladungen zu senden und Tickets zu nutzen.</p>
+        <p class="muted" style="font-size:13px">Erstelle kostenlos einen Account oder logge dich ein, um Highscores als Preis-Tickets einzureichen, den 30-Tage VIP-Rang freizuschalten und Freunde einzuladen.</p>
         <div class="field"><label>Benutzername</label><input id="authUser" maxlength="16" placeholder="z.B. NeonKing"></div>
         <div class="field"><label>Passwort / PIN</label><input id="authPass" type="password" maxlength="24" placeholder="••••••" onkeydown="if(event.key==='Enter')app.loginOrRegister('login')"></div>
         <div class="row" style="justify-content:flex-start;margin-top:14px">
@@ -139,12 +192,19 @@
       <div id="authLogged" style="display:none">
         <div class="list-box">
           <div class="list-item">
-            <div><span class="badge-online"></span><strong id="profName" style="font-size:18px"></strong></div>
+            <div><span class="badge-online"></span><strong id="profName" style="font-size:18px"></strong><span id="profVipBadge"></span></div>
             <span class="pill ticket-pill">🎟️ <span id="profArcadeTickets">0</span> Arcade-Tickets</span>
           </div>
+          <div class="list-item" style="font-size:13px;color:var(--muted)">
+            <span>👑 VIP-Status:</span>
+            <strong id="profVipStatusText" style="color:var(--gold)">Kein aktiver VIP-Rang</strong>
+          </div>
         </div>
-        <p class="muted" style="font-size:13px">Du erhältst automatisch Arcade-Tickets für gewonnene Spiele und kannst im Ticket-Menü Support-Tickets erstellen.</p>
-        <button class="btn danger" onclick="app.logout()">Ausloggen</button>
+        <p class="muted" style="font-size:13px">Spiele Tetris oder Stacker, reiche deinen Highscore als <b>Preis-Ticket</b> ein und tausche deine Arcade-Tickets im Reiter <b>🎫 Tickets & VIP</b> gegen 30 Tage VIP ein!</p>
+        <div class="row" style="justify-content:flex-start">
+          <button class="btn primary" onclick="app.openSubTab('tickets')">👑 Zum VIP-Shop & Tickets</button>
+          <button class="btn danger" onclick="app.logout()">Ausloggen</button>
+        </div>
       </div>
     </div>
 
@@ -161,24 +221,37 @@
         <h4 style="margin:14px 0 6px;font-size:14px;color:var(--muted)">FREUNDSCHAFTSANFRAGEN</h4>
         <div id="friendReqList" class="list-box"><div class="muted" style="font-size:13px">Keine offenen Anfragen.</div></div>
 
-        <h4 style="margin:14px 0 6px;font-size:14px;color:var(--muted)">DEINE FREUNDE (1-Klick Einladen)</h4>
+        <h4 style="margin:14px 0 6px;font-size:14px;color:var(--muted)">DEINE FREUNDE (inkl. VIP-Status & 1-Klick Einladen)</h4>
         <div id="friendList" class="list-box"><div class="muted" style="font-size:13px">Noch keine Freunde hinzugefügt.</div></div>
       </div>
     </div>
 
-    <!-- TAB 3: TICKET SYSTEM -->
+    <!-- TAB 3: TICKETS & VIP SHOP -->
     <div id="pane-tickets" class="subpane" style="display:none">
-      <div id="ticketsNeedAuth" class="note">Bitte logge dich zuerst im Reiter <b>Account</b> ein, um Support-Tickets zu erstellen oder deinen Ticket-Status zu sehen!</div>
+      <div id="ticketsNeedAuth" class="note">Bitte logge dich zuerst im Reiter <b>Account</b> ein, um den VIP-Shop, Preis-Tickets oder Support-Tickets zu nutzen!</div>
       <div id="ticketsContent" style="display:none">
-        <div class="list-box" style="margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
-          <div>
-            <strong>Deine Arcade-Tickets:</strong>
-            <div class="muted" style="font-size:12px">Belohnungspunkte durch Siege in Solo- & Online-Games</div>
+        <!-- VIP SHOP -->
+        <div class="vip-shop-box">
+          <div class="row" style="justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="eyebrow" style="color:var(--gold)">👑 EXKLUSIVER BELOHNUNGS-SHOP</div>
+              <h4 style="margin:4px 0;font-size:18px">VIP-Rang für 30 Tage freischalten</h4>
+              <p class="muted" style="font-size:12px;margin:4px 0 10px">Erhalte das goldene <b>👑 VIP-Badge</b> im Header, in der Freundesliste, in den Bestenlisten und in allen Multiplayer-Lobbys!</p>
+              <div id="vipShopStatus" style="font-size:12px;color:var(--lime);margin-bottom:8px;font-weight:700"></div>
+            </div>
+            <div class="pill ticket-pill" style="font-size:15px">🎟️ <span id="ticketPaneCount">0</span></div>
           </div>
-          <div class="pill ticket-pill" style="font-size:16px">🎟️ <span id="ticketPaneCount">0</span></div>
+          <button class="btn primary" style="background:linear-gradient(110deg,#f59e0b,#ec4899)" onclick="app.buyVipRank()">👑 30 Tage VIP-Rang einlösen (Kosten: 50 🎟️)</button>
+          <div id="vipBuyFeedback" style="font-size:12px;color:var(--gold);margin-top:6px;min-height:16px"></div>
         </div>
 
-        <h4 style="margin:10px 0 6px;font-size:14px;color:var(--cyan)">NEUES SUPPORT-TICKET ERSTELLEN</h4>
+        <!-- INFO ABOUT PRIZE TICKETS -->
+        <div class="note" style="margin:0 0 14px;padding:10px 12px;font-size:12px">
+          🏆 <b>Preis-Tickets (Highscores):</b> Spiele eine Runde <b>Tetris</b> oder <b>Stacker</b> und klicke nach Spielende direkt auf <i>„Highscore als Preis-Ticket einreichen“</i>, um dir vom Admin Bonus-Arcade-Tickets gutschreiben zu lassen!
+        </div>
+
+        <!-- CREATE SUPPORT TICKET -->
+        <h4 style="margin:10px 0 6px;font-size:14px;color:var(--cyan)">🛠️ NORMALES SUPPORT-TICKET ERSTELLEN</h4>
         <div class="field">
           <label>Kategorie</label>
           <select id="tktCat">
@@ -194,28 +267,56 @@
         </div>
         <div class="field">
           <label>Nachricht / Beschreibung</label>
-          <textarea id="tktMsg" rows="3" placeholder="Beschreibe dein Anliegen..."></textarea>
+          <textarea id="tktMsg" rows="2" placeholder="Beschreibe dein Anliegen..."></textarea>
         </div>
-        <button class="btn primary" onclick="app.createSupportTicket()">Ticket absenden ↗</button>
+        <button class="btn primary" onclick="app.createSupportTicket()">Support-Ticket absenden ↗</button>
         <div id="tktFeedback" style="color:var(--lime);font-size:12px;margin-top:8px;min-height:18px"></div>
 
-        <h4 style="margin:18px 0 8px;font-size:14px;color:var(--muted)">DEINE SUPPORT-TICKETS</h4>
+        <!-- MY TICKETS (SUPPORT & PRIZE) -->
+        <div class="row" style="justify-content:space-between;margin:18px 0 8px">
+          <h4 style="font-size:14px;color:var(--muted)">DEINE TICKETS (PREIS & SUPPORT)</h4>
+          <div class="row" style="gap:6px">
+            <button class="btn" style="padding:4px 9px;font-size:11px;min-height:28px" onclick="app.setMyTicketFilter('all')">Alle</button>
+            <button class="btn" style="padding:4px 9px;font-size:11px;min-height:28px" onclick="app.setMyTicketFilter('prize')">🏆 Preis-Tickets</button>
+            <button class="btn" style="padding:4px 9px;font-size:11px;min-height:28px" onclick="app.setMyTicketFilter('support')">🛠️ Support</button>
+          </div>
+        </div>
         <div id="myTicketsList" class="list-box"></div>
 
+        <!-- ADMIN AREA -->
         <div style="margin-top:20px;border-top:1px solid #ffffff18;padding-top:14px">
           <div class="row" style="justify-content:space-between">
-            <h4 style="font-size:14px;color:var(--gold)">👑 ADMIN: ALLE SPIELER-TICKETS LESEN</h4>
+            <h4 style="font-size:14px;color:var(--gold)">👑 ADMIN: TICKETS PRÜFEN & GENEHMIGEN</h4>
             <button class="btn" style="padding:6px 12px;font-size:12px" onclick="app.toggleAdminTickets()">Admin-Ansicht öffnen</button>
           </div>
           <div id="adminTicketsArea" style="display:none;margin-top:12px">
+            <div class="row" style="justify-content:flex-start;margin-bottom:8px;gap:6px">
+              <button class="btn primary" id="admFlt-all" style="padding:5px 10px;font-size:11px;min-height:30px" onclick="app.setAdminTicketFilter('all')">Alle anzeigen</button>
+              <button class="btn" id="admFlt-prize" style="padding:5px 10px;font-size:11px;min-height:30px" onclick="app.setAdminTicketFilter('prize')">🏆 Nur Preis-Tickets</button>
+              <button class="btn" id="admFlt-support" style="padding:5px 10px;font-size:11px;min-height:30px" onclick="app.setAdminTicketFilter('support')">🛠️ Nur Support-Tickets</button>
+            </div>
             <div id="allTicketsList" class="list-box"><div class="muted" style="font-size:13px">Lade alle Tickets...</div></div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- TAB 4: HIGHSCORE LEADERBOARDS -->
+    <div id="pane-leaders" class="subpane" style="display:none">
+      <p class="muted" style="font-size:13px;margin-top:0">Die offiziellen Live-Bestenlisten für <b>Tetris</b> und <b>Stacker</b> (inklusive 👑 VIP-Spieler-Markierung):</p>
+      <div class="lb-grid">
+        <div>
+          <h4 style="color:var(--cyan);margin-bottom:6px">🧱 TETRIS TOP 10</h4>
+          <div id="lbTetris" class="list-box"><div class="muted" style="font-size:13px">Lade Bestenliste...</div></div>
+        </div>
+        <div>
+          <h4 style="color:var(--gold);margin-bottom:6px">🏗️ STACKER TOP 10</h4>
+          <div id="lbStacker" class="list-box"><div class="muted" style="font-size:13px">Lade Bestenliste...</div></div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
-
 <!-- LIVE INVITE TOAST -->
 <div id="inviteToast" class="invite-toast">
   <div class="eyebrow">🎮 SPIEL-EINLADUNG</div>
