@@ -1,0 +1,30 @@
+/* PLAYVERSE – Zusatz-Styles für VIP, Toast-Meldungen (Dark-Mode) */
+.vip-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:1px 8px;margin-left:2px;border-radius:999px;
+  font-size:10px;font-weight:800;letter-spacing:.07em;line-height:1.55;
+  color:#2b1d00;background:linear-gradient(135deg,#ffe58a 0%,#f5a623 55%,#ffd36b 100%);
+  box-shadow:0 0 10px #f5a62366, inset 0 0 0 1px #ffffff55;
+  vertical-align:middle;white-space:nowrap;
+}
+.vip-card{
+  display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+  margin:0 0 14px;padding:14px 16px;border-radius:14px;
+  background:linear-gradient(135deg,#2a2210 0%,#1b1d2e 70%);
+  border:1px solid #f5a62355;
+}
+.vip-card strong{color:var(--gold,#ffc857);font-size:15px}
+.vip-btn{
+  background:linear-gradient(135deg,#ffe58a,#f5a623);color:#2b1d00;font-weight:800;border:0;
+}
+.vip-btn:hover:not(:disabled){filter:brightness(1.08)}
+.vip-btn:disabled{opacity:.5;cursor:not-allowed}
+.pv-toast{
+  position:fixed;left:50%;bottom:24px;transform:translate(-50%,18px);
+  max-width:min(92vw,460px);padding:11px 16px;border-radius:12px;
+  background:#151b33;color:#e8ecff;border:1px solid #66e3ff55;
+  font-size:13px;line-height:1.4;box-shadow:0 10px 30px #000a;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:99999;
+}
+.pv-toast.show{opacity:1;transform:translate(-50%,0)}
+.pv-toast.err{border-color:#ff526f;background:#2a1520}
