@@ -1,7 +1,7 @@
 {
   "name": "playverse-arcade",
-  "version": "25.0.0",
-  "description": "Playverse Arcade Hub V25",
+  "version": "23.0.0",
+  "description": "Playverse Arcade Hub (54 Games, Accounts, Friends, Tickets) for Node.js & Pelican Panel",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

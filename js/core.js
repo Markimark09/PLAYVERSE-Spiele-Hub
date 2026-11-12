@@ -1,38 +1,39 @@
+
 const firebaseConfig = {
-    apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
-    authDomain: "playverse-bce37.firebaseapp.com",
-    databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "playverse-bce37",
-    storageBucket: "playverse-bce37.firebasestorage.app",
-    messagingSenderId: "884239855268",
-    appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
+  apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
+  authDomain: "playverse-bce37.firebaseapp.com",
+  databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "playverse-bce37",
+  storageBucket: "playverse-bce37.firebasestorage.app",
+  messagingSenderId: "884239855268",
+  appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
 };
 let db=null, presRef=null;
 try {
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    let connRef = db.ref('.info/connected');
-    connRef.on('value', s => {
-        if(s.val()===true){
-            presRef = db.ref('playversePresence').push();
-            presRef.onDisconnect().remove();
-            presRef.set(true);
-            if(window.app && window.app.currentUser) {
-                window.app.setOnlineStatus(window.app.currentUser);
-            }
-        }
-    });
-    db.ref('playversePresence').on('value', s => {
-        let el = document.getElementById('onlineCount');
-        if(el) el.textContent = Math.max(1, s.numChildren());
-    });
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.database();
+  let connRef = db.ref('.info/connected');
+  connRef.on('value', s => {
+    if(s.val()===true){
+       presRef = db.ref('playversePresence').push();
+       presRef.onDisconnect().remove();
+       presRef.set(true);
+       if(window.app && window.app.currentUser) {
+           window.app.setOnlineStatus(window.app.currentUser);
+       }
+    }
+  });
+  db.ref('playversePresence').on('value', s => {
+     let el = document.getElementById('onlineCount');
+     if(el) el.textContent = Math.max(1, s.numChildren());
+  });
 } catch(e) { console.warn("Firebase Init Error:", e) }
 
 window.app = {
     itvs: [], toms: [], rafs: [], idleTimer: null, resetTimer: null,
     currentUser: null, userData: null, userListener: null, ticketsListener: null,
     onlineUsers: {}, cachedMyTickets: {}, cachedAllTickets: {},
-    pendingClaim: false, claimInterval: null, claimSecondsLeft: 0,
+    claimTimeout: null, claimInterval: null, claimSecondsLeft: 0, canClaimBonus: false,
 
     stInt: function(f,t) { let i=setInterval(f,t); this.itvs.push(i); return i; },
     stTo:  function(f,t) { let i=setTimeout(f,t); this.toms.push(i); return i; },
@@ -126,135 +127,82 @@ window.app = {
         }
     },
 
-    // --- 2. PAUSCHALER +5 TICKETS GUTSCHREIBEN-BUTTON (120 SEKUNDEN ANZEIGEZEIT) ---
-    offerTicketClaim: function(reasonText) {
-        this.pendingClaim = true;
-        this.claimSecondsLeft = 120;
+    // --- 2. TICKET-BELOHNUNG (PAUSCHAL 5 TICKETS PER MANUELLEM GUTSCHREIBEN-BUTTON MIT 120s ANZEIGEZEIT) ---
+    addArcadeTickets: function(ignoredAmount, reason) {
+        // Dynamische Vergabe während des Spielens ist deaktiviert -> öffnet stattdessen den manuellen +5 Gutschreiben-Button
+        this.offerCompletionBonus(reason || 'Spiel erfolgreich abgeschlossen!');
+    },
+    offerCompletionBonus: function(label) {
+        this.canClaimBonus = true;
+        this.claimSecondsLeft = 120; // Deutlich verlängerte Anzeigezeit: 120 Sekunden (2 Minuten)
         let bar = document.getElementById('claimTicketBar');
         let txt = document.getElementById('claimTicketText');
         let tmr = document.getElementById('claimTicketTimer');
         let btn = document.getElementById('claimTicketBtn');
-        if(txt) txt.textContent = `🎉 ${reasonText || 'Spiel beendet!'} — Klicke rechts, um deine pauschal +5 Tickets gutzuschreiben!`;
+        if(!bar) return;
+
+        if(txt) txt.textContent = (label ? label + ' — ' : '') + 'Pauschal +5 Tickets Abschluss-Bonus bereit!';
         if(btn) {
             btn.disabled = false;
             btn.textContent = '🎟️ +5 Tickets gutschreiben';
         }
-        if(tmr) tmr.textContent = this.claimSecondsLeft;
-        if(bar) bar.style.display = 'block';
+        if(tmr) tmr.textContent = 'Button bleibt noch 120s sichtbar';
+        bar.classList.add('show');
 
+        if(this.claimTimeout) clearTimeout(this.claimTimeout);
         if(this.claimInterval) clearInterval(this.claimInterval);
+
         this.claimInterval = setInterval(() => {
             this.claimSecondsLeft--;
-            if(tmr) tmr.textContent = Math.max(0, this.claimSecondsLeft);
+            if(tmr && this.canClaimBonus) {
+                tmr.textContent = `Button bleibt noch ${Math.max(0, this.claimSecondsLeft)}s sichtbar`;
+            }
             if(this.claimSecondsLeft <= 0) {
-                this.hideClaimBar();
+                clearInterval(this.claimInterval);
             }
         }, 1000);
+
+        this.claimTimeout = setTimeout(() => {
+            this.hideClaimBar();
+        }, 120000);
     },
-    claimPendingTickets: function() {
-        if(!this.pendingClaim) return;
+    claimCompletionTickets: function() {
+        if(!this.canClaimBonus) return;
+        this.canClaimBonus = false;
+        let btn = document.getElementById('claimTicketBtn');
+        let tmr = document.getElementById('claimTicketTimer');
+
         if(!this.currentUser || !db || !this.userData) {
-            alert("Bitte logge dich oben rechts unter 'Login / Account' ein, damit dir die +5 Tickets gutgeschrieben werden können!");
+            alert("Bitte logge dich oben rechts unter '👤 Login / Account' ein, damit dir die +5 Tickets auf dein Konto gutgeschrieben werden können!");
             this.openModal('acc');
+            this.canClaimBonus = true;
             return;
         }
-        this.pendingClaim = false;
-        let next = (Number(this.userData.arcadeTickets) || 0) + 5;
-        db.ref('playverseUsers/' + this.currentUser + '/arcadeTickets').set(next);
-        let btn = document.getElementById('claimTicketBtn');
-        if(btn) {
-            btn.disabled = true;
-            btn.textContent = '✓ +5 Tickets gutgeschrieben!';
-        }
-        setTimeout(() => this.hideClaimBar(), 2500);
+
+        // Immer pauschal exakt 5 Tickets als Abschluss-Bonus gutschreiben
+        let current = Number(this.userData.arcadeTickets || 0);
+        let next = current + 5;
+        db.ref('playverseUsers/' + this.currentUser + '/arcadeTickets').set(next).then(() => {
+            if(btn) {
+                btn.disabled = true;
+                btn.textContent = '✅ +5 Tickets gutgeschrieben!';
+            }
+            if(tmr) tmr.textContent = `Neuer Kontostand: ${next} 🎟️`;
+            this.loadLeaderboard();
+            setTimeout(() => {
+                this.hideClaimBar();
+            }, 4000);
+        });
     },
     hideClaimBar: function() {
-        this.pendingClaim = false;
-        if(this.claimInterval) {
-            clearInterval(this.claimInterval);
-            this.claimInterval = null;
-        }
+        this.canClaimBonus = false;
+        if(this.claimTimeout) clearTimeout(this.claimTimeout);
+        if(this.claimInterval) clearInterval(this.claimInterval);
         let bar = document.getElementById('claimTicketBar');
-        if(bar) bar.style.display = 'none';
-    },
-    // Kompatibilitäts-Wrapper: Jede frühere Ticket-Vergabe triggert nun den manuellen +5 Gutschreiben-Button
-    addArcadeTickets: function(amount, reason) {
-        this.offerTicketClaim(reason || 'Runde erfolgreich abgeschlossen');
+        if(bar) bar.classList.remove('show');
     },
 
-    // --- 3. BESTENLISTE (LEADERBOARD) SPEICHERUNG & SORTIERUNG ---
-    saveHighscore: function(boardKey, scoreValue) {
-        let num = Number(scoreValue) || 0;
-        if(num <= 0) return;
-        localStorage.setItem('pv_best_' + boardKey, Math.max(num, Number(localStorage.getItem('pv_best_' + boardKey)) || 0));
-        if(!this.currentUser || !db) return;
-        let disp = (this.userData && this.userData.displayName) || this.currentUser;
-        let ref = db.ref('playverseLeaderboards/' + boardKey + '/' + this.currentUser);
-        ref.once('value').then(s => {
-            let prev = (s.exists() && s.val() && Number(s.val().score)) ? Number(s.val().score) : 0;
-            if(num > prev) {
-                ref.set({
-                    name: disp,
-                    score: num,
-                    updatedAt: Date.now()
-                });
-            }
-        });
-    },
-    openLeaderboard: function(category) {
-        let cat = category || 'tickets';
-        document.getElementById('leaderboardModal').classList.add('open');
-        ['tickets', 'chase', 'tower'].forEach(c => {
-            let btn = document.getElementById('lb-tab-' + c);
-            if(btn) btn.classList.toggle('active', c === cat);
-        });
-        let box = document.getElementById('leaderboardList');
-        box.innerHTML = '<div class="muted" style="font-size:13px">Lade und sortiere Bestenliste...</div>';
-        if(!db) {
-            box.innerHTML = '<div class="muted" style="font-size:13px">Firebase nicht verbunden.</div>';
-            return;
-        }
-        if(cat === 'tickets') {
-            db.ref('playverseUsers').once('value').then(s => {
-                let users = s.val() || {};
-                let rows = Object.keys(users).map(uk => ({
-                    name: users[uk].displayName || uk,
-                    score: Number(users[uk].arcadeTickets) || 0
-                })).sort((a, b) => b.score - a.score);
-                this.renderLeaderboardRows(rows, '🎟️ Tickets');
-            });
-        } else {
-            let unit = cat === 'chase' ? 'm Distanz' : 'Etagen';
-            db.ref('playverseLeaderboards/' + cat).once('value').then(s => {
-                let data = s.val() || {};
-                let rows = Object.keys(data).map(uk => ({
-                    name: data[uk].name || uk,
-                    score: Number(data[uk].score) || 0
-                })).sort((a, b) => b.score - a.score);
-                this.renderLeaderboardRows(rows, unit);
-            });
-        }
-    },
-    renderLeaderboardRows: function(rows, unitLabel) {
-        let box = document.getElementById('leaderboardList');
-        if(!rows || rows.length === 0) {
-            box.innerHTML = '<div class="muted" style="font-size:13px">Noch keine Einträge vorhanden. Spiele eine Runde, um Platz 1 zu erobern!</div>';
-            return;
-        }
-        box.innerHTML = rows.slice(0, 30).map((r, idx) => {
-            let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-            return `
-            <div class="list-item">
-                <div><strong style="color:var(--gold);margin-right:8px">${medal}</strong> <b>${this.escapeHtml(r.name)}</b></div>
-                <span class="pill ticket-pill">${r.score} ${unitLabel}</span>
-            </div>`;
-        }).join('');
-    },
-    closeLeaderboard: function() {
-        document.getElementById('leaderboardModal').classList.remove('open');
-    },
-
-    // --- CHATFENSTER & MODAL RESIZE ---
+    // --- 3. CHATFENSTER & MODAL RESIZE / GROSSFORMAT ---
     toggleModalFullscreen: function(modalId) {
         let el = document.getElementById(modalId || 'mainHubModalBox');
         if(el) el.classList.toggle('fullscreen-modal');
@@ -262,6 +210,14 @@ window.app = {
     toggleChatFullscreen: function(chatId) {
         let el = document.getElementById(chatId);
         if(el) el.classList.toggle('chat-expanded');
+    },
+    changeChatSize: function(chatId, deltaPx) {
+        let el = document.getElementById(chatId);
+        if(!el) return;
+        el.classList.remove('chat-expanded');
+        let currentH = el.offsetHeight || 300;
+        let nextH = Math.max(200, Math.min(window.innerHeight * 0.78, currentH + deltaPx));
+        el.style.height = nextH + 'px';
     },
     sendChatMessage: function(inputId) {
         let inp = document.getElementById(inputId || 'chatInput');
@@ -294,7 +250,35 @@ window.app = {
         });
     },
     escapeHtml: function(str) {
-        return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+        return String(str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    },
+
+    // --- 4. BESTENLISTE (LEADERBOARD) ---
+    loadLeaderboard: function() {
+        let box = document.getElementById('leaderboardList');
+        if(!box || !db) return;
+        db.ref('playverseUsers').once('value').then(s => {
+            let users = s.val() || {};
+            let arr = Object.keys(users).map(k => ({
+                key: k,
+                name: users[k].displayName || k,
+                tickets: Number(users[k].arcadeTickets || 0)
+            }));
+            arr.sort((a, b) => b.tickets - a.tickets);
+            if(arr.length === 0) {
+                box.innerHTML = '<div class="muted" style="font-size:13px">Noch keine Spieler in der Bestenliste.</div>';
+                return;
+            }
+            box.innerHTML = arr.slice(0, 50).map((u, idx) => {
+                let medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                let isMe = u.key === this.currentUser;
+                return `
+                <div class="list-item" style="${isMe ? 'background:#1c2948;border-radius:10px' : ''}">
+                    <div><strong style="display:inline-block;width:36px;color:var(--gold)">${medal}</strong> <b>${this.escapeHtml(u.name)}</b> ${isMe ? '<span class="pill" style="display:inline;padding:2px 7px;font-size:10px">Du</span>' : ''}</div>
+                    <span class="pill ticket-pill">🎟️ ${u.tickets} Tickets</span>
+                </div>`;
+            }).join('');
+        });
     },
 
     // --- MODAL & ACCOUNT / FRIENDS / TICKETS ---
@@ -306,10 +290,13 @@ window.app = {
         document.getElementById('hubModal').classList.remove('open');
     },
     openSubTab: function(tab) {
-        ['acc','friends','tickets'].forEach(k => {
-            document.getElementById('st-'+k).classList.toggle('active', k===tab);
-            document.getElementById('pane-'+k).style.display = (k===tab) ? 'block' : 'none';
+        ['acc','friends','tickets','leaderboard'].forEach(k => {
+            let st = document.getElementById('st-'+k);
+            let pn = document.getElementById('pane-'+k);
+            if(st) st.classList.toggle('active', k===tab);
+            if(pn) pn.style.display = (k===tab) ? 'block' : 'none';
         });
+        if(tab === 'leaderboard') this.loadLeaderboard();
     },
     cleanKey: function(name) {
         return (name||'').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
@@ -410,7 +397,7 @@ window.app = {
             return;
         }
         let d = this.userData;
-        let tCount = Number(d.arcadeTickets) || 0;
+        let tCount = d.arcadeTickets || 0;
         document.getElementById('headerAccBtn').textContent = '👤 ' + (d.displayName || this.currentUser);
         document.getElementById('profName').textContent = d.displayName || this.currentUser;
         document.getElementById('profArcadeTickets').textContent = tCount;
@@ -522,7 +509,7 @@ window.app = {
         if(this.currentUser && db) db.ref('playverseUsers/' + this.currentUser + '/invite').remove();
     },
 
-    // --- SUPPORT TICKET SYSTEM (INKL. GROSSANSICHT & LÖSCHEN) ---
+    // --- 5. SUPPORT TICKET SYSTEM (INKL. GROSSANSICHT & ADMIN-LÖSCHFUNKTION) ---
     createSupportTicket: function() {
         if(!this.currentUser || !db) return;
         let cat = document.getElementById('tktCat').value;
@@ -577,13 +564,14 @@ window.app = {
             </div>`;
         }).join('');
     },
+
     openTicketDetail: function(uKey, tKey, isAdmin) {
         let source = isAdmin ? (this.cachedAllTickets[uKey] || {}) : this.cachedMyTickets;
         let t = source[tKey];
         if(!t) return;
 
         document.getElementById('tdTitle').textContent = `Ticket #${t.id} — ${t.subj}`;
-        document.getElementById('tdMeta').innerHTML = `👤 Spieler: <b>${this.escapeHtml(uKey)}</b> &nbsp;|&nbsp; 📂 Kategorie: <b>${this.escapeHtml(t.cat)}</b> &nbsp;|&nbsp; 🕒 Erstellt: ${this.escapeHtml(t.createdAt)} &nbsp;|&nbsp; Status: <span class="ticket-status ${t.status==='Offen'?'open':'closed'}">${this.escapeHtml(t.status)}</span>`;
+        document.getElementById('tdMeta').innerHTML = `👤 Spieler: <b>${this.escapeHtml(uKey)}</b> &nbsp;|&nbsp; 📂 Kategorie: <b>${this.escapeHtml(t.cat)}</b> &nbsp;|&nbsp; 🕒 ${this.escapeHtml(t.createdAt)} &nbsp;|&nbsp; Status: <span class="ticket-status ${t.status==='Offen'?'open':'closed'}">${this.escapeHtml(t.status)}</span>`;
         document.getElementById('tdBody').textContent = t.msg || '';
 
         let replyBox = document.getElementById('tdReplyBox');
@@ -611,6 +599,7 @@ window.app = {
     closeTicketDetail: function() {
         document.getElementById('ticketDetailModal').classList.remove('open');
     },
+
     adminListener: null,
     envPin: null,
     loadEnv: async function() {
@@ -635,7 +624,7 @@ window.app = {
                 }
             } catch(e) {}
         }
-        return "1234";
+        return null;
     },
     verifyPinWithServer: async function(pin) {
         try {
@@ -648,6 +637,7 @@ window.app = {
             if(res.status === 401) return false;
         } catch(e) {}
         let expectedPin = await this.loadEnv();
+        if(!expectedPin) return null;
         return pin.trim() === expectedPin;
     },
     toggleAdminTickets: async function() {
@@ -659,6 +649,10 @@ window.app = {
         let pin = prompt("Bitte Admin-Passwort / PIN eingeben:");
         if(pin === null) return;
         let isValid = await this.verifyPinWithServer(pin);
+        if(isValid === null) {
+            alert("Kein ADMIN_PIN gefunden! Bitte prüfe deine .env Datei oder 'playverseAdmin/pin' in Firebase.");
+            return;
+        }
         if(!isValid) {
             alert("Falscher Admin-PIN!");
             return;
@@ -679,7 +673,7 @@ window.app = {
             });
             items.reverse();
             if(items.length === 0) {
-                box.innerHTML = '<div class="muted" style="font-size:13px">Aktuell gibt es keine Tickets.</div>';
+                box.innerHTML = '<div class="muted" style="font-size:13px">Aktuell gibt es überhaupt keine Tickets.</div>';
                 return;
             }
             box.innerHTML = items.map(item => {
