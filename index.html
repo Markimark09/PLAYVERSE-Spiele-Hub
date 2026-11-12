@@ -1,5 +1,6 @@
 <!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#090b18"><meta name="apple-mobile-web-app-capable" content="yes"><title>PLAYVERSE — V24 Mobile, Tablet & Node.js Edition</title>
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/playverse-patch.css">
 </head><body>
 <header>
   <div class="brand" onclick="app.home()">PLAY<span>VERSE</span> ✦</div>
@@ -296,6 +297,18 @@
           <div class="pill ticket-pill" style="font-size:16px">🎟️ <span id="ticketPaneCount">0</span></div>
         </div>
 
+        <div class="vip-card" id="vipCard">
+          <div>
+            <strong>★ VIP-Rang</strong>
+            <div id="vipStatus" style="font-size:13px;margin-top:4px"></div>
+            <div class="muted" style="font-size:11px;margin-top:3px">30 Tage gültig · VIP-Stern neben deinem Namen im Header, Chat, in der Freundesliste & den Bestenlisten</div>
+          </div>
+          <div style="text-align:right">
+            <button class="btn vip-btn" id="vipBuyBtn" onclick="app.buyVip()">★ VIP kaufen</button>
+            <div id="vipMsg" style="font-size:12px;margin-top:6px;min-height:16px"></div>
+          </div>
+        </div>
+
         <h4 style="margin:10px 0 6px;font-size:14px;color:var(--cyan)">NEUES SUPPORT-TICKET ERSTELLEN</h4>
         <div class="field">
           <label>Kategorie</label>
@@ -337,6 +350,10 @@
       <div class="row" style="justify-content:space-between;margin-bottom:10px">
         <h4 style="font-size:15px;color:var(--gold)">🏆 OFFIZIELLE PLAYVERSE BESTENLISTE (TOP SPIELER)</h4>
         <button class="btn" style="padding:5px 10px;font-size:12px" onclick="app.loadLeaderboard()">🔄 Aktualisieren</button>
+      </div>
+      <div class="field" style="margin-bottom:10px">
+        <label>Kategorie / Spiel</label>
+        <select id="lbGameSelect" onchange="app.loadLeaderboard(this.value)"></select>
       </div>
       <div id="leaderboardList" class="list-box resizable-box"><div class="muted" style="font-size:13px">Lade Bestenliste...</div></div>
     </div>

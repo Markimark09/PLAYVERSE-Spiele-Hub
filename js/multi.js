@@ -106,14 +106,21 @@ window.multi = (function(){
         
         let isFinished = false;
         let stat = d.status || '';
-        if(stat.includes('gewinnt') || stat.includes('Unentschieden') || stat.includes('GEWINNT') || d.w || (stat.includes('P1') && stat.includes('P2'))) isFinished = true;
+        if(stat.includes('gewinnt') || stat.includes('Unentschieden') || stat.includes('GEWINNT') || (d.w && d.game!=='wordo') || (stat.includes('P1') && stat.includes('P2'))) isFinished = true;
         if(d.game==='colorwar' && d.started && Date.now()>d.endTime) isFinished = true;
         
         if(isFinished) {
-            if(!M.bonusShownForRound){ M.bonusShownForRound=true; app.offerCompletionBonus('Online-Match abgeschlossen'); }
+            if(!M.bonusShownForRound){
+                M.bonusShownForRound=true;
+                app.offerCompletionBonus('Online-Match abgeschlossen');
+                let me=M.playerName||'';
+                let iWon = (me && stat.indexOf(me+' gewinnt')===0) || (M.player==='p1' && stat.indexOf('P1 gewinnt')===0) || (M.player==='p2' && stat.indexOf('P2 gewinnt')===0) || (d.game!=='wordo' && me && d.w===me);
+                if(iWon) app.recordWin();
+            }
             document.getElementById('rstatus').textContent = Object.values(d.players||{}).join(' VS ')+' · '+stat + ' (Neustart in 30s...)';
             if(M.player==='p1' && !app.resetTimer) app.resetTimer = setTimeout(() => { M.po('auto_reset'); app.resetTimer=null; }, 30000);
-        } else { M.bonusShownForRound=false; } else {
+        } else {
+            M.bonusShownForRound=false;
             if(app.resetTimer){ clearTimeout(app.resetTimer); app.resetTimer=null; }
             document.getElementById('rstatus').textContent = Object.values(d.players||{}).join(' VS ')+' · '+stat;
         }
