@@ -241,7 +241,7 @@
     </div>
     <div id="chatMessages" class="chat-messages"></div>
     <div class="chat-input-row">
-      <input id="chatInput" placeholder="Nachricht in den Chat schreiben..." maxlength="200" onkeydown="if(event.key==='Enter')app.sendChatMessage('chatInput')">
+      <input id="chatInput" placeholder="Nachricht (**fett**, *kursiv*, GIF-Link …)" maxlength="400" onkeydown="if(event.key==='Enter')app.sendChatMessage('chatInput')">
       <button class="btn primary" onclick="app.sendChatMessage('chatInput')">Senden</button>
     </div>
     <div class="chat-resize-hint">↘ Ziehe an der Ecke unten rechts, um das Chatfenster frei anzupassen</div>
@@ -323,7 +323,7 @@
           </div>
           <div id="modalChatMessages" class="chat-messages"></div>
           <div class="chat-input-row">
-            <input id="modalChatInput" placeholder="Nachricht schreiben..." maxlength="200" onkeydown="if(event.key==='Enter')app.sendChatMessage('modalChatInput')">
+            <input id="modalChatInput" placeholder="Nachricht (**fett**, *kursiv*, GIF-Link …)" maxlength="400" onkeydown="if(event.key==='Enter')app.sendChatMessage('modalChatInput')">
             <button class="btn primary" onclick="app.sendChatMessage('modalChatInput')">Senden</button>
           </div>
           <div class="chat-resize-hint">↘ Ecke ziehen zum Vergrößern/Verkleinern</div>
