@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
   authDomain: "playverse-bce37.firebaseapp.com",
@@ -165,6 +164,9 @@ window.app = {
     addArcadeTickets: function(ignoredAmount, reason) {
         this.offerCompletionBonus(reason || 'Spiel erfolgreich abgeschlossen!');
     },
+    claimAmountNow: function() {   // Doppel-Bonus aus dem Shop
+        return this.CLAIM_AMOUNT * (Number(this.userData && this.userData.boostUntil || 0) > this.now() ? 2 : 1);
+    },
     claimCooldownLeft: function() {
         let last = Number((this.userData && this.userData.lastClaimAt) || 0);
         return Math.max(0, Math.ceil((last + this.CLAIM_COOLDOWN_MS - this.now()) / 1000));
@@ -176,7 +178,7 @@ window.app = {
         this.claimBusy = false;
         this.claimDeadline = Date.now() + this.CLAIM_VISIBLE_SEC * 1000;
         let txt = document.getElementById('claimTicketText');
-        if(txt) txt.textContent = (label ? label + ' — ' : '') + '+' + this.CLAIM_AMOUNT + ' Tickets Abschluss-Bonus bereit!';
+        if(txt) txt.textContent = (label ? label + ' — ' : '') + '+' + this.claimAmountNow() + ' Tickets Abschluss-Bonus bereit!';
         bar.classList.add('show');
         if(this.claimTimeout) clearTimeout(this.claimTimeout);
         if(this.claimInterval) clearInterval(this.claimInterval);
@@ -192,7 +194,7 @@ window.app = {
         let cd = this.claimCooldownLeft();
         if(btn && !this.claimBusy) {
             btn.disabled = cd > 0;
-            btn.textContent = cd > 0 ? '⏳ Noch ' + cd + 's Wartezeit' : '🎟️ +' + this.CLAIM_AMOUNT + ' Tickets gutschreiben';
+            btn.textContent = cd > 0 ? '⏳ Noch ' + cd + 's Wartezeit' : '🎟️ +' + this.claimAmountNow() + ' Tickets gutschreiben';
         }
         if(tmr) tmr.textContent = 'Button bleibt noch ' + left + 's sichtbar';
     },
@@ -227,18 +229,20 @@ window.app = {
                 result = { ok: false, reason: 'daily' };
                 return;
             }
-            cur.arcadeTickets = Number(cur.arcadeTickets || 0) + self.CLAIM_AMOUNT;
+            let amt = self.CLAIM_AMOUNT * (Number(cur.boostUntil || 0) > now ? 2 : 1);
+            cur.arcadeTickets = Number(cur.arcadeTickets || 0) + amt;
+            cur.claimTotal = Number(cur.claimTotal || 0) + 1;
             cur.lastClaimAt = now;
             cur.claimDay = day;
             cur.claimCount = cnt + 1;
-            result = { ok: true, reason: '' };
+            result = { ok: true, reason: '', amt: amt };
             return cur;
         }).then(res => {
             if(res.committed && result.ok) {
                 this.canClaimBonus = false;
                 if(this.claimInterval) clearInterval(this.claimInterval);
                 let total = Number((res.snapshot.val() || {}).arcadeTickets || 0);
-                if(btn) { btn.disabled = true; btn.textContent = '✅ +' + this.CLAIM_AMOUNT + ' Tickets gutgeschrieben!'; }
+                if(btn) { btn.disabled = true; btn.textContent = '✅ +' + (result.amt || this.CLAIM_AMOUNT) + ' Tickets gutgeschrieben!'; }
                 if(tmr) tmr.textContent = 'Neuer Kontostand: ' + total + ' 🎟️';
                 setTimeout(() => this.hideClaimBar(), 4000);
             } else if(result.reason === 'daily') {
@@ -368,6 +372,7 @@ window.app = {
         };
         if(this.currentUser) msg.uid = this.currentUser;
         inp.value = '';
+        if(this.statInc) this.statInc('chat');
         db.ref('playverseGlobalChat').push(msg).catch(err => {
             inp.value = text;                 // Nachricht nicht verlieren
             this.dbErr('Chat senden', err);
@@ -380,7 +385,7 @@ window.app = {
         list = list.filter(m => !(Number(m.ts) && Number(m.ts) < minTs)).slice(-40);   // älter als 2 Tage: ausblenden
         let html = list.length === 0
             ? '<div class="muted" style="font-size:12px">Noch keine Nachrichten im Chat.</div>'
-            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid)}:</b> ${this.formatChat(m.text||'')}</div>`).join('');
+            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid, {title:true})}:</b> ${this.formatChat(m.text||'')}</div>`).join('');
         ['chatMessages', 'modalChatMessages'].forEach(id => {
             let box = document.getElementById(id);
             if(box) {
@@ -487,7 +492,9 @@ window.app = {
         pacman:   { name: 'Pac-Man',            ico: '🟡', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
         dk:       { name: 'Donkey Kong',        ico: '🦍', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
         frogger:  { name: 'Frogger',            ico: '🐸', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
-        asteroids:{ name: 'Asteroids',          ico: '☄️', dir: 'desc', fmt: 'n',   unit: 'Pkt' }
+        asteroids:{ name: 'Asteroids',          ico: '☄️', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
+        neon:     { name: 'Neon Arena',         ico: '💠', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
+        spaceshooter: { name: 'Space Shooter',  ico: '🚀', dir: 'desc', fmt: 'n',   unit: 'Pkt' }
     },
     fmtScore: function(cat, v) {
         let cfg = this.LB_GAMES[cat] || {};
@@ -536,7 +543,7 @@ window.app = {
             improved = true;
             return { name: p.name, score: p.score, ts: firebase.database.ServerValue.TIMESTAMP };
         }).then(res => {
-            if(res.committed && improved) self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score));
+            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId); }
         }).catch(err => {
             delete self.lbLocalBest[p.user + '|' + gameId];
             self.dbErr('Highscore speichern', err);
@@ -549,7 +556,7 @@ window.app = {
             name: name,
             score: Number((cur && cur.score) || 0) + 1,
             ts: firebase.database.ServerValue.TIMESTAMP
-        })).then(() => this.toast('⚔️ Online-Sieg gezählt!')).catch(err => this.dbErr('Sieg speichern', err));
+        })).then(() => { this.toast('⚔️ Online-Sieg gezählt!'); if(this.statInc) this.statInc('wins'); }).catch(err => this.dbErr('Sieg speichern', err));
     },
     // öffentliches Mini-Profil für die Ticket-Rangliste + VIP-Anzeige (kein Passwort!)
     syncPublicProfile: function(d) {
@@ -621,7 +628,7 @@ window.app = {
             let isMe = u.key === this.currentUser;
             return `
             <div class="list-item" style="${isMe ? 'background:#1c2948;border-radius:10px' : ''}">
-                <div><strong style="display:inline-block;width:36px;color:var(--gold)">${medal}</strong> <b>${this.nameHtml(u.name, u.key)}</b> ${isMe ? '<span class="pill" style="display:inline;padding:2px 7px;font-size:10px">Du</span>' : ''}</div>
+                <div><strong style="display:inline-block;width:36px;color:var(--gold)">${medal}</strong> <b>${this.nameHtml(u.name, u.key, {title:true})}</b> ${isMe ? '<span class="pill" style="display:inline;padding:2px 7px;font-size:10px">Du</span>' : ''}</div>
                 <span class="pill ticket-pill">${cfg.ico} ${this.escapeHtml(this.fmtScore(this.lbCat, u.score))}</span>
             </div>`;
         }).join('');
@@ -636,7 +643,7 @@ window.app = {
         document.getElementById('hubModal').classList.remove('open');
     },
     openSubTab: function(tab) {
-        ['acc','friends','tickets','leaderboard'].forEach(k => {
+        ['acc','friends','tickets','shop','ach','leaderboard'].forEach(k => {
             let st = document.getElementById('st-'+k);
             let pn = document.getElementById('pane-'+k);
             if(st) st.classList.toggle('active', k===tab);
