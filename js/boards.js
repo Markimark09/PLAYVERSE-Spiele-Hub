@@ -217,11 +217,155 @@ window.boards = (function(){
     }
   };
 
+  // ==================================================================  SNAKE-BATTLE (Echtzeit, 2 Spieler)
+  // Der Host (p1) simuliert das Spiel und schreibt den Zustand ~7x pro Sekunde nach Firebase (d.sn).
+  // Spieler 2 schickt nur seine Richtung (d.in2). Beide zeichnen den Zustand auf ein Canvas.
+  const SNK_N = 24, SNK_C = 16;
+  const SNK_V = { U:[0,-1], D:[0,1], L:[-1,0], R:[1,0] }, SNK_OPP = { U:'D', D:'U', L:'R', R:'L' };
+  const snk = { timer: null, st: null, dir1: 'R', sent: '', keysOn: false, drawT: 0 };
+  function snkFood(st){
+    const taken = new Set([...st.a, ...st.b, ...st.f].map(c => c[0] + ',' + c[1]));
+    for(let i = 0; i < 200; i++){
+      const x = Math.floor(Math.random() * SNK_N), y = Math.floor(Math.random() * SNK_N);
+      if(!taken.has(x + ',' + y)) return [x, y];
+    }
+    return null;
+  }
+  function snkNew(){
+    const st = { a: [[5,12],[4,12],[3,12]], b: [[18,12],[19,12],[20,12]], da: 'R', db: 'L', f: [], ov: 0, t: 0 };
+    for(let i = 0; i < 3; i++){ const f = snkFood(st); if(f) st.f.push(f); }
+    return st;
+  }
+  // Ein Spielschritt (rein, testbar). ov: 0 läuft, 1 = Spieler 1 gewinnt, 2 = Spieler 2 gewinnt, 3 = Unentschieden
+  function snkStep(st, dirA, dirB){
+    if(dirA && dirA !== SNK_OPP[st.da]) st.da = dirA;
+    if(dirB && dirB !== SNK_OPP[st.db]) st.db = dirB;
+    const ha = [st.a[0][0] + SNK_V[st.da][0], st.a[0][1] + SNK_V[st.da][1]];
+    const hb = [st.b[0][0] + SNK_V[st.db][0], st.b[0][1] + SNK_V[st.db][1]];
+    const eq = (p, q) => p[0] === q[0] && p[1] === q[1];
+    const fa = st.f.findIndex(f => eq(f, ha)), fb = st.f.findIndex(f => eq(f, hb));
+    const bodyA = fa >= 0 ? st.a : st.a.slice(0, -1), bodyB = fb >= 0 ? st.b : st.b.slice(0, -1);
+    const oob = h => h[0] < 0 || h[1] < 0 || h[0] >= SNK_N || h[1] >= SNK_N;
+    const deadA = oob(ha) || bodyA.some(c => eq(c, ha)) || bodyB.some(c => eq(c, ha)) || eq(ha, hb);
+    const deadB = oob(hb) || bodyA.some(c => eq(c, hb)) || bodyB.some(c => eq(c, hb)) || eq(ha, hb);
+    if(deadA || deadB){ st.ov = deadA && deadB ? 3 : deadA ? 2 : 1; return st; }
+    st.a.unshift(ha); if(fa < 0) st.a.pop();
+    st.b.unshift(hb); if(fb < 0) st.b.pop();
+    [fa, fb].filter(i => i >= 0).sort((x, y) => y - x).forEach((i, n, arr) => { if(n === 0 || i !== arr[n - 1]) st.f.splice(i, 1); });
+    while(st.f.length < 3){ const f = snkFood(st); if(!f) break; st.f.push(f); }
+    st.t++;
+    return st;
+  }
+  function snkStop(){ if(snk.timer){ clearInterval(snk.timer); snk.timer = null; } }
+  function snkHostStart(M){
+    if(snk.timer) return;
+    snk.timer = setInterval(() => {
+      const d = window.td, cv = document.getElementById('snkCvs');
+      if(!cv || !d || !d.started || !snk.st || snk.st.ov){ snkStop(); return; }
+      snkStep(snk.st, snk.dir1, d.in2);
+      const st = snk.st, nm = p => nameOf(d, p);
+      let status = 'Runde läuft';
+      if(st.ov === 1) status = `${nm('p1')} gewinnt!`;
+      else if(st.ov === 2) status = `${nm('p2')} gewinnt!`;
+      else if(st.ov === 3) status = 'Unentschieden – gleich geht es weiter';
+      M.roomRef.update({ sn: JSON.parse(JSON.stringify(st)), status });
+      if(st.ov){
+        snkStop();
+        if(st.ov === 3) setTimeout(() => { if(document.getElementById('snkCvs') && window.td && window.td.started) B.snakebattle.begin(M); }, 3000);
+      }
+    }, 150);
+  }
+  B.snkDir = function(dir){
+    const M = window.multi, d = window.td;
+    if(!M || !d || !d.started || !SNK_V[dir]) return;
+    if(M.player === 'p1'){ snk.dir1 = dir; }
+    else if(M.player === 'p2' && snk.sent !== dir){ snk.sent = dir; M.roomRef.update({ in2: dir }); }
+  };
+  function snkDraw(cv, d, M){
+    const c = cv.getContext('2d'), S = SNK_C, st = d.sn;
+    c.fillStyle = '#05060f'; c.fillRect(0, 0, SNK_N * S, SNK_N * S);
+    c.strokeStyle = '#0f1736'; c.lineWidth = 1;
+    for(let i = 0; i <= SNK_N; i++){ c.beginPath(); c.moveTo(i * S, 0); c.lineTo(i * S, SNK_N * S); c.moveTo(0, i * S); c.lineTo(SNK_N * S, i * S); c.stroke(); }
+    if(st){
+      c.fillStyle = '#ffd36b'; (st.f || []).forEach(f => { c.beginPath(); c.arc(f[0] * S + S / 2, f[1] * S + S / 2, S / 3, 0, 7); c.fill(); });
+      [[st.a, '#66e3ff', '#b8f4ff', 1], [st.b, '#ff6fa5', '#ffc2d9', 2]].forEach(([arr, col, head, id]) => {
+        (arr || []).forEach((p, i) => { c.fillStyle = i === 0 ? head : col; c.globalAlpha = (st.ov && st.ov !== 3 && st.ov === (id === 1 ? 2 : 1)) ? 0.35 : 1; c.fillRect(p[0] * S + 1, p[1] * S + 1, S - 2, S - 2); });
+      });
+      c.globalAlpha = 1;
+    }
+    if(!d.started || (st && st.ov)){
+      c.fillStyle = '#05060fcc'; c.fillRect(0, SNK_N * S / 2 - 26, SNK_N * S, 52);
+      c.fillStyle = '#fff'; c.font = 'bold 18px sans-serif'; c.textAlign = 'center';
+      c.fillText(!d.started ? 'Bereit?' : (d.status || ''), SNK_N * S / 2, SNK_N * S / 2 + 6); c.textAlign = 'start';
+    }
+  }
+  B.snakebattle = {
+    resetStatus: 'Warte auf Spieler 2 …',
+    init(){ return { started: false, turn: 'p1', sn: null, in2: 'L' }; },
+    begin(M){
+      const st = snkNew(); snk.dir1 = 'R'; snk.sent = '';
+      return M.roomRef.update({ started: true, sn: st, in2: 'L', status: 'Runde läuft' });
+    },
+    render(d, M, og){
+      let cv = document.getElementById('snkCvs');
+      if(!cv){
+        og.innerHTML = `<div style="text-align:center"><div id="snkInfo" style="margin-bottom:8px"></div>
+          <canvas id="snkCvs" width="${SNK_N * SNK_C}" height="${SNK_N * SNK_C}" style="max-width:100%;border-radius:12px;border:1px solid #2a3560"></canvas>
+          <div class="dpad" style="margin-top:8px">
+            <div></div><button type="button" onpointerdown="boards.snkDir('U')">⬆️</button><div></div>
+            <button type="button" onpointerdown="boards.snkDir('L')">⬅️</button>
+            <button type="button" onpointerdown="boards.snkDir('D')">⬇️</button>
+            <button type="button" onpointerdown="boards.snkDir('R')">➡️</button>
+          </div>
+          <div id="snkCtl" style="margin-top:10px;min-height:40px"></div>
+          <div class="muted" style="font-size:12px;margin-top:6px">Pfeiltasten/WASD oder Steuerkreuz. Wer gegen Wand oder Schlange fährt, verliert.</div></div>`;
+        cv = document.getElementById('snkCvs');
+      }
+      snk.M = M;
+      if(d.sn && d.sn.t === 0) snk.sent = '';
+      if(!snk.keysOn){
+        snk.keysOn = true;
+        const map = { ArrowUp:'U', w:'U', W:'U', ArrowDown:'D', s:'D', S:'D', ArrowLeft:'L', a:'L', A:'L', ArrowRight:'R', d:'R', D:'R' };
+        const h = e => {
+          if(!document.getElementById('snkCvs')){ document.removeEventListener('keydown', h); snk.keysOn = false; return; }
+          const dir = map[e.key]; if(dir){ B.snkDir(dir); e.preventDefault(); }
+        };
+        document.addEventListener('keydown', h);
+      }
+      // Host-Simulation starten/fortsetzen oder beenden
+      if(M.player === 'p1' && d.started && d.sn && !d.sn.ov){
+        if(!snk.timer){ snk.st = JSON.parse(JSON.stringify(d.sn)); snk.dir1 = snk.st.da || 'R'; snkHostStart(M); }
+      } else if(snk.timer){ snkStop(); }
+      const p1 = nameOf(d, 'p1'), p2 = d.players && d.players.p2 ? nameOf(d, 'p2') : '…';
+      const len = (a) => (d.sn && d.sn[a]) ? d.sn[a].length : 3;
+      const inf = document.getElementById('snkInfo');
+      if(inf) inf.innerHTML = `<span style="color:#66e3ff">● ${esc(p1)} (${len('a')})</span> &nbsp;vs&nbsp; <span style="color:#ff6fa5">● ${esc(p2)} (${len('b')})</span>` +
+        ` &nbsp;·&nbsp; Du bist <b style="color:${M.player === 'p1' ? '#66e3ff' : '#ff6fa5'}">${M.player === 'p1' ? 'Türkis' : 'Pink'}</b>`;
+      const ctl = document.getElementById('snkCtl');
+      if(ctl){
+        const running = d.started && d.sn && !d.sn.ov;
+        ctl.innerHTML = running ? '' : (M.player === 'p1'
+          ? (d.players && d.players.p2 ? `<button class="btn primary" onclick="multi.po('b_snk_start')">▶ ${d.sn ? 'Neue Runde' : 'Runde starten'}</button>` : `<div class="muted">Warte auf Spieler 2 … Code: <b>${esc(M.roomCode)}</b></div>`)
+          : `<div class="muted">Warte, bis der Host die Runde startet …</div>`);
+      }
+      snkDraw(cv, d, M);
+      const rs = document.getElementById('rstatus');
+      if(rs && !/gewinnt/.test(d.status || '')) rs.textContent = d.status || '';
+    },
+    act(act, val, M, d){
+      if(act === 'b_snk_start'){
+        if(M.player !== 'p1' || !(d.players && d.players.p2)) return;
+        if(d.started && d.sn && !d.sn.ov) return;
+        snkStop(); return B.snakebattle.begin(M);
+      }
+    }
+  };
+
   // Einstieg aus multi.po(): act-Namen beginnen mit "b_"
   B.act = function(act, val, M, d){
     const g = B[d.game];
     if(g && g.act) return g.act(act, val, M, d);
   };
-  B._test = { lMoves, lApply, lNext, muStep, MU_ADJ, MU_MILLS, MU_XY, L_RING, L_GOAL, L_BASE };
+  B._test = { snkStep, snkNew, lMoves, lApply, lNext, muStep, MU_ADJ, MU_MILLS, MU_XY, L_RING, L_GOAL, L_BASE };
   return B;
 })();
