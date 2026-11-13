@@ -354,7 +354,7 @@ window.app = {
     sendChatMessage: function(inputId) {
         let inp = document.getElementById(inputId || 'chatInput');
         if(!inp) return;
-        let text = inp.value.trim().slice(0, 200);
+        let text = inp.value.trim().slice(0, 400);
         if(!text) return;
         if(!db) { this.toast('Chat nicht verfügbar: Firebase ist nicht erreichbar.', 'err'); return; }
         if(Date.now() - this.lastChatAt < 1500) { this.toast('Bitte kurz warten, bevor du die nächste Nachricht sendest.'); return; }
@@ -376,10 +376,11 @@ window.app = {
     renderChatMessages: function(src) {
         this.lastChat = src;
         let list = Array.isArray(src) ? src : Object.keys(src || {}).map(k => Object.assign({ _k: k }, src[k]));
-        list = list.slice(-40);
+        let minTs = this.now() - this.CHAT_TTL_MS;
+        list = list.filter(m => !(Number(m.ts) && Number(m.ts) < minTs)).slice(-40);   // älter als 2 Tage: ausblenden
         let html = list.length === 0
             ? '<div class="muted" style="font-size:12px">Noch keine Nachrichten im Chat.</div>'
-            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid)}:</b> ${this.escapeHtml(m.text||'')}</div>`).join('');
+            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid)}:</b> ${this.formatChat(m.text||'')}</div>`).join('');
         ['chatMessages', 'modalChatMessages'].forEach(id => {
             let box = document.getElementById(id);
             if(box) {
@@ -387,6 +388,62 @@ window.app = {
                 box.scrollTop = box.scrollHeight;
             }
         });
+    },
+    // ---- Chat: Formatierung, GIF-/Bild-Links, Auto-Löschen nach 2 Tagen ----
+    CHAT_TTL_MS: 2 * 24 * 3600 * 1000,
+    isChatImageHost: function(h) {
+        return /^(media\d*|c)\.tenor\.com$/.test(h) || /^(media\d*|i)\.giphy\.com$/.test(h) || h === 'i.imgur.com' ||
+               h === 'media.discordapp.net' || h === 'cdn.discordapp.com' || h === 'i.redd.it' || h === 'preview.redd.it';
+    },
+    formatChat: function(raw) {
+        // Unterstützt: **fett**, *kursiv*, ~~durchgestrichen~~, `code`, ||spoiler||, https-Links,
+        // GIF/Bild-Links (Tenor, Giphy, Imgur, Discord, Reddit) werden direkt angezeigt.
+        let txt = String(raw == null ? '' : raw).replace(/[\u0000-\u0008\u000b-\u001f]/g, '');
+        let s = this.escapeHtml(txt), stash = [], self = this, imgs = 0;
+        const hold = html => { stash.push(html); return '\u0001' + (stash.length - 1) + '\u0001'; };
+        s = s.replace(/`([^`\n]{1,200})`/g, (m, c) => hold('<code class="chat-code">' + c + '</code>'));
+        s = s.replace(/https:\/\/[^\s<>\u0001]+/g, m => {
+            let trail = '', t = m.match(/[.,!?;:)\]]+$/);
+            if(t){ trail = t[0]; m = m.slice(0, -trail.length); }
+            let real = m.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+            let u; try { u = new URL(real); } catch(e) { return m + trail; }
+            if(u.protocol !== 'https:') return m + trail;
+            let host = u.hostname.toLowerCase(), href = self.escapeHtml(u.href);
+            const link = '<a href="' + href + '" target="_blank" rel="noopener noreferrer nofollow">' + self.escapeHtml(u.href.length > 48 ? u.href.slice(0, 45) + '…' : u.href) + '</a>';
+            let img = '';
+            if(self.isChatImageHost(host) && /\.(gif|png|jpe?g|webp)$/i.test(u.pathname)) img = u.href;
+            else if(/^(www\.)?giphy\.com$/.test(host)){
+                let g = u.pathname.match(/\/(?:gifs|stickers)\/(?:[^\/]*-)?([A-Za-z0-9]+)\/?$/);
+                if(g) img = 'https://media.giphy.com/media/' + g[1] + '/giphy.gif';
+            }
+            if(img && imgs < 2){
+                imgs++;
+                return hold('<a href="' + href + '" target="_blank" rel="noopener noreferrer nofollow"><img class="chat-gif" src="' + self.escapeHtml(img) +
+                    '" alt="GIF" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(document.createTextNode(\'[Bild nicht ladbar]\'))"></a>') + trail;
+            }
+            if(/^(www\.)?tenor\.com$/.test(host) && imgs < 2){
+                let tm = u.pathname.match(/^\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?view\/.*-(\d+)\/?$/);
+                if(tm){
+                    imgs++;
+                    return hold('<iframe class="chat-tenor" src="https://tenor.com/embed/' + tm[1] + '" loading="lazy" sandbox="allow-scripts allow-same-origin allow-popups" referrerpolicy="no-referrer" title="Tenor GIF"></iframe>') + trail;
+                }
+            }
+            return hold(link) + trail;
+        });
+        s = s.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>')
+             .replace(/\*(?!\s)([^*\n]*?[^*\s])\*/g, '<i>$1</i>')
+             .replace(/~~([^\n]+?)~~/g, '<s>$1</s>')
+             .replace(/\|\|([^\n]+?)\|\|/g, '<span class="chat-spoiler" title="Klicken zum Aufdecken" onclick="this.classList.toggle(\'on\')">$1</span>');
+        return s.replace(/\u0001(\d+)\u0001/g, (m, i) => stash[Number(i)] || '');
+    },
+    cleanupChat: function() {
+        if(!db) return;
+        let cutoff = this.now() - this.CHAT_TTL_MS;
+        db.ref('playverseGlobalChat').orderByChild('ts').endAt(cutoff).limitToFirst(200).once('value').then(s => {
+            let upd = {};
+            s.forEach(c => { upd[c.key] = null; });
+            if(Object.keys(upd).length) return db.ref('playverseGlobalChat').update(upd);
+        }).catch(err => console.warn('[PLAYVERSE] Chat-Aufräumen:', err));
     },
     chatError: function(err) {
         let html = '<div class="chat-msg" style="color:var(--red,#ff526f)">⚠️ Chat nicht erreichbar: ' +
@@ -1038,6 +1095,8 @@ window.addEventListener('DOMContentLoaded', () => {
             window.app.refreshVipViews();
         }, err => console.warn('[PLAYVERSE] VIP-Liste:', err));
         setInterval(() => window.app.refreshVipViews(), 60000);   // Ablauf live nachziehen
+        setTimeout(() => window.app.cleanupChat(), 4000);          // Nachrichten > 2 Tage löschen
+        setInterval(() => window.app.cleanupChat(), 30 * 60 * 1000);
         let savedU = localStorage.getItem('pv_user');
         let savedP = localStorage.getItem('pv_pass');
         if(savedU && savedP) {
