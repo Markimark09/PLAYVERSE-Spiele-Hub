@@ -36,3 +36,25 @@
 .chat-spoiler{background:#2a3560;color:transparent;border-radius:4px;cursor:pointer;padding:0 3px;user-select:none}
 .chat-spoiler.on{color:inherit;background:#1c2542;user-select:auto}
 .chat-msg a{color:var(--cyan,#66e3ff);word-break:break-all}
+
+/* Paket 2: Shop, Tagesbelohnung, Erfolge, Namens-Kosmetik */
+.nm-rainbow{background:linear-gradient(90deg,#ff5d73,#ffb347,#ffd36b,#b8f36b,#66e3ff,#c9a0ff,#ff6fa5,#ff5d73);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:nmRb 4s linear infinite;font-weight:700}
+@keyframes nmRb{to{background-position:200% 0}}
+.nm-title{display:inline-block;font-size:10px;padding:0 7px;border-radius:999px;border:1px solid #4a5a96;color:#aeb9e8;vertical-align:middle;white-space:nowrap;margin-left:2px}
+.daily-card{padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#1c2542,#141a33);border:1px solid #2a3560}
+.daily-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.daily-day{text-align:center;padding:7px 2px;border-radius:10px;background:#0f1530;border:1px solid #2a3560;font-size:11px}
+.daily-day .dd-r{font-weight:700;margin-top:3px;font-size:12px}
+.daily-day.done{opacity:.55;border-color:#3a6b2b}
+.daily-day.now{border-color:#ffd36b;box-shadow:0 0 12px #ffd36b66;background:#2a2210}
+.shop-h{margin:18px 0 8px;font-size:14px;color:var(--cyan,#66e3ff)}
+.shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+.shop-item{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:12px 8px;border-radius:12px;background:#121935;border:1px solid #2a3560}
+.shop-item.on{border-color:#b8f36b;box-shadow:0 0 10px #b8f36b44}
+.si-prev{min-height:30px;display:flex;align-items:center;font-weight:700}
+.si-name{font-size:12px;color:#aeb9e8;min-height:14px}
+.ach-bar{height:8px;border-radius:99px;background:#0f1530;overflow:hidden;margin-bottom:12px}
+.ach-bar i{display:block;height:100%;background:linear-gradient(90deg,#66e3ff,#b8f36b)}
+.ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:12px;background:#121935;border:1px solid #2a3560;opacity:.7}
+.ach-item.ok{opacity:1;border-color:#b8f36b66}
+.ach-ico{font-size:24px;width:34px;text-align:center}
