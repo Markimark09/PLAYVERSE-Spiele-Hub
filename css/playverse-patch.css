@@ -28,3 +28,11 @@
 }
 .pv-toast.show{opacity:1;transform:translate(-50%,0)}
 .pv-toast.err{border-color:#ff526f;background:#2a1520}
+
+/* Chat: Formatierung, GIFs, Spoiler */
+.chat-gif{display:block;max-width:220px;max-height:200px;border-radius:10px;margin:4px 0;background:#0a0d1e}
+.chat-tenor{display:block;width:240px;max-width:100%;height:210px;border:0;border-radius:10px;margin:4px 0;background:#0a0d1e}
+.chat-code{background:#0a0d1e;border:1px solid #2a3560;border-radius:5px;padding:0 5px;font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.chat-spoiler{background:#2a3560;color:transparent;border-radius:4px;cursor:pointer;padding:0 3px;user-select:none}
+.chat-spoiler.on{color:inherit;background:#1c2542;user-select:auto}
+.chat-msg a{color:var(--cyan,#66e3ff);word-break:break-all}
