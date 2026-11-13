@@ -6,6 +6,10 @@
 
   // ---- Hier neue Einträge oben ergänzen (ts = Date.UTC(Jahr, Monat-1, Tag, Stunde)) ----
   const BUILTIN = [
+    { ts: Date.UTC(2026, 10, 13, 18), tag: 'NEU',    title: 'Shop, Tagesbelohnung & Erfolge',
+      text: 'Hol dir jeden Tag Gratis-Tickets (je länger deine Serie, desto mehr – VIP +50 %). Im neuen Shop kaufst du Namensfarben, Titel, Avatare und den Doppel-Bonus. 14 Erfolge bringen zusätzliche Tickets!' },
+    { ts: Date.UTC(2026, 10, 13, 12), tag: 'NEU',    title: 'Action-Paket: Neon Arena, Space Shooter & Snake-Battle',
+      text: 'Zwei neue Solo-Shooter (Top-Down-Arena mit Wellen und Powerups, vertikaler Space Shooter mit Bossen) und Snake-Battle: Echtzeit-Duell für 2 Spieler im Mehrspieler-Tab!' },
     { ts: Date.UTC(2026, 10, 12, 18), tag: 'NEU',    title: '4 neue Arcade-Klassiker',
       text: 'Pac-Man, Donkey Kong, Frogger und Asteroids sind jetzt als Solo-Spiele dabei – mit Bestenliste und Ticket-Bonus nach der Runde.' },
     { ts: Date.UTC(2026, 10, 12, 17), tag: 'NEU',    title: 'Brettspiele online',
