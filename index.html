@@ -10,13 +10,16 @@
     <button class="btn" onclick="app.openModal('friends')">👥 Freunde <span id="friendReqBadge" style="display:none;background:#ff526f;color:#fff;padding:1px 6px;border-radius:10px;font-size:11px;margin-left:4px">0</span></button>
     <button class="btn" onclick="app.openModal('leaderboard')">🏆 Bestenliste</button>
     <button class="btn" id="dailyBtn" onclick="app.openModal('shop')">🎁 Shop <span id="dailyDot" style="display:none;background:#ff5d73;color:#fff;width:9px;height:9px;border-radius:50%;margin-left:3px;vertical-align:middle"></span></button>
+    <button class="btn" onclick="app.openEvents('tour')">🏆 Turniere <span id="evDot" style="display:none;background:#ff5d73;color:#fff;width:9px;height:9px;border-radius:50%;margin-left:3px;vertical-align:middle"></span></button>
     <button class="btn" onclick="app.openNews()">📰 News <span id="newsBadge" style="display:none;background:#b8f36b;color:#0a0d1e;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;margin-left:4px">NEU</span></button>
     <button class="btn" onclick="app.openModal('tickets')">🎫 Tickets</button>
+    <button class="btn" id="myProfBtn" onclick="app.openMyProfile()" title="Mein Profil">🙂 Profil</button>
     <button class="btn primary" id="headerAccBtn" onclick="app.openModal('acc')">👤 Login / Account</button>
   </div>
 </header>
 <main>
 <section id="home" class="view active">
+  <div id="eventBanner" class="event-banner" style="display:none"></div>
   <div class="hero">
     <div>
       <div class="eyebrow">DEIN SPIELPLATZ · V20 ULTIMATE</div>
@@ -199,6 +202,15 @@
     <p class="muted" style="font-size:12px;margin:8px 0">Links/Rechts drehen, Pfeil hoch = Schub, Leertaste = Feuer. Große Asteroiden zerfallen in kleinere.</p><button class="btn primary" onclick="app.startSolo('asteroids')">Neustart</button></div></section>
 <section id="neon" class="view"><div class="toolbar"><h2>💠 Neon Arena (Solo)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel"><div id="nzs" class="status">Punkte: 0</div><canvas id="nzCvs" width="400" height="400" style="max-width:100%;touch-action:none;border-radius:12px"></canvas><div class="row" style="justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn" onpointerdown="solo.neonKey('left',true)" onpointerup="solo.neonKey('left',false)" onpointerleave="solo.neonKey('left',false)">⬅️</button><button type="button" class="btn" onpointerdown="solo.neonKey('up',true)" onpointerup="solo.neonKey('up',false)" onpointerleave="solo.neonKey('up',false)">⬆️</button><button type="button" class="btn" onpointerdown="solo.neonKey('down',true)" onpointerup="solo.neonKey('down',false)" onpointerleave="solo.neonKey('down',false)">⬇️</button><button type="button" class="btn" onpointerdown="solo.neonKey('right',true)" onpointerup="solo.neonKey('right',false)" onpointerleave="solo.neonKey('right',false)">➡️</button></div><p class="muted" style="font-size:12px;margin:8px 0">WASD/Pfeiltasten zum Bewegen – dein Schiff schießt automatisch auf den nächsten Gegner. Sammle Powerups: ⚡ schneller, 🔱 Dreifachschuss, 🛡️ Schild, ➕ Leben.</p><button class="btn primary" onclick="app.startSolo('neon')">Neustart</button></div></section>
 <section id="spaceshooter" class="view"><div class="toolbar"><h2>🚀 Space Shooter (Solo)</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel"><div id="sps" class="status">Punkte: 0</div><canvas id="spCvs" width="320" height="440" style="max-width:100%;touch-action:none;border-radius:12px"></canvas><div class="row" style="justify-content:center;gap:6px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn" onpointerdown="solo.spaceKey('left',true)" onpointerup="solo.spaceKey('left',false)" onpointerleave="solo.spaceKey('left',false)">⬅️</button><button type="button" class="btn" onpointerdown="solo.spaceKey('up',true)" onpointerup="solo.spaceKey('up',false)" onpointerleave="solo.spaceKey('up',false)">⬆️</button><button type="button" class="btn" onpointerdown="solo.spaceKey('down',true)" onpointerup="solo.spaceKey('down',false)" onpointerleave="solo.spaceKey('down',false)">⬇️</button><button type="button" class="btn" onpointerdown="solo.spaceKey('right',true)" onpointerup="solo.spaceKey('right',false)" onpointerleave="solo.spaceKey('right',false)">➡️</button></div><p class="muted" style="font-size:12px;margin:8px 0">Pfeiltasten/WASD oder Finger/Maus auf dem Spielfeld ziehen. Dein Schiff schießt automatisch. Alle 3 Wellen kommt ein Boss!</p><button class="btn primary" onclick="app.startSolo('spaceshooter')">Neustart</button></div></section>
+<section id="profile" class="view"><div class="toolbar"><h2>🙂 Spielerprofil</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel" style="text-align:left"><div id="profileBox"></div></div></section>
+<section id="events" class="view"><div class="toolbar"><h2>🏆 Turniere & Events</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel" style="text-align:left">
+  <div class="subtabs" style="margin-bottom:14px">
+    <button class="subtab active" id="evTab-tour" onclick="app.evTab('tour')">🏆 Wochen-Turnier</button>
+    <button class="subtab" id="evTab-ev" onclick="app.evTab('ev')">🎉 Events</button>
+    <button class="subtab" id="evTab-clan" onclick="app.evTab('clan')">🛡️ Clans</button>
+  </div>
+  <div id="evPane-tour"></div><div id="evPane-ev" style="display:none"></div><div id="evPane-clan" style="display:none"></div>
+</div></section>
 <section id="news" class="view"><div class="toolbar"><h2>📰 News</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel" style="text-align:left">
   <div class="row" style="justify-content:space-between;margin-bottom:12px"><span class="muted" style="font-size:13px">Die neuesten Neuigkeiten rund um PLAYVERSE – neueste zuerst.</span><button class="btn" style="font-size:12px" onclick="app.newsAdminLogin()">👑 Admin</button></div>
   <div id="newsAdminBox" style="display:none;margin-bottom:16px;padding:14px;border:1px dashed #4a5a96;border-radius:12px">
@@ -479,4 +491,5 @@
 <script src="js/boards.js"></script>
 <script src="js/news.js"></script>
 <script src="js/shop.js"></script>
+<script src="js/community.js"></script>
 </body></html>
