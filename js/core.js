@@ -164,8 +164,12 @@ window.app = {
     addArcadeTickets: function(ignoredAmount, reason) {
         this.offerCompletionBonus(reason || 'Spiel erfolgreich abgeschlossen!');
     },
-    claimAmountNow: function() {   // Doppel-Bonus aus dem Shop
-        return this.CLAIM_AMOUNT * (Number(this.userData && this.userData.boostUntil || 0) > this.now() ? 2 : 1);
+    eventMult: function(type) {    // läuft gerade ein Admin-Event dieser Art? -> Faktor 2
+        let e = this.eventNow;
+        return (e && e.type === type && Number(e.until) > this.now()) ? 2 : 1;
+    },
+    claimAmountNow: function() {   // Doppel-Bonus aus dem Shop oder Event (der höhere Faktor zählt)
+        return this.CLAIM_AMOUNT * Math.max(Number(this.userData && this.userData.boostUntil || 0) > this.now() ? 2 : 1, this.eventMult('double_bonus'));
     },
     claimCooldownLeft: function() {
         let last = Number((this.userData && this.userData.lastClaimAt) || 0);
@@ -229,7 +233,7 @@ window.app = {
                 result = { ok: false, reason: 'daily' };
                 return;
             }
-            let amt = self.CLAIM_AMOUNT * (Number(cur.boostUntil || 0) > now ? 2 : 1);
+            let amt = self.CLAIM_AMOUNT * Math.max(Number(cur.boostUntil || 0) > now ? 2 : 1, self.eventMult('double_bonus'));
             cur.arcadeTickets = Number(cur.arcadeTickets || 0) + amt;
             cur.claimTotal = Number(cur.claimTotal || 0) + 1;
             cur.lastClaimAt = now;
@@ -385,7 +389,7 @@ window.app = {
         list = list.filter(m => !(Number(m.ts) && Number(m.ts) < minTs)).slice(-40);   // älter als 2 Tage: ausblenden
         let html = list.length === 0
             ? '<div class="muted" style="font-size:12px">Noch keine Nachrichten im Chat.</div>'
-            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid, {title:true})}:</b> ${this.formatChat(m.text||'')}</div>`).join('');
+            : list.map(m => `<div class="chat-msg"><span class="muted" style="font-size:10px">[${this.escapeHtml(m.time||'')}]</span> <b>${this.nameHtml(m.sender||'Spieler', m.uid, {title:true, link:true})}:</b> ${this.formatChat(m.text||'')}</div>`).join('');
         ['chatMessages', 'modalChatMessages'].forEach(id => {
             let box = document.getElementById(id);
             if(box) {
@@ -514,6 +518,7 @@ window.app = {
             if(!this._guestHint) { this._guestHint = true; this.toast('💡 Logge dich ein, damit dein Highscore in der Bestenliste landet.'); }
             return;
         }
+        if(this.tourSubmit) this.tourSubmit(gameId, score);      // Wochen-Turnier (zählt auch ohne neuen Allzeit-Rekord)
         let ck = this.currentUser + '|' + gameId;
         let prev = this.lbLocalBest[ck];
         if(prev !== undefined && (asc ? score >= prev : score <= prev)) return;   // nicht besser als zuletzt gemeldet
@@ -543,7 +548,7 @@ window.app = {
             improved = true;
             return { name: p.name, score: p.score, ts: firebase.database.ServerValue.TIMESTAMP };
         }).then(res => {
-            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId); }
+            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId, p.user); if(self.profBest) self.profBest(gameId, p.score, p.user); }
         }).catch(err => {
             delete self.lbLocalBest[p.user + '|' + gameId];
             self.dbErr('Highscore speichern', err);
@@ -628,7 +633,7 @@ window.app = {
             let isMe = u.key === this.currentUser;
             return `
             <div class="list-item" style="${isMe ? 'background:#1c2948;border-radius:10px' : ''}">
-                <div><strong style="display:inline-block;width:36px;color:var(--gold)">${medal}</strong> <b>${this.nameHtml(u.name, u.key, {title:true})}</b> ${isMe ? '<span class="pill" style="display:inline;padding:2px 7px;font-size:10px">Du</span>' : ''}</div>
+                <div><strong style="display:inline-block;width:36px;color:var(--gold)">${medal}</strong> <b>${this.nameHtml(u.name, u.key, {title:true, link:true})}</b> ${isMe ? '<span class="pill" style="display:inline;padding:2px 7px;font-size:10px">Du</span>' : ''}</div>
                 <span class="pill ticket-pill">${cfg.ico} ${this.escapeHtml(this.fmtScore(this.lbCat, u.score))}</span>
             </div>`;
         }).join('');
@@ -793,7 +798,7 @@ window.app = {
                 let canInvite = window.multi && window.multi.roomCode && document.getElementById('online').classList.contains('active');
                 return `
                 <div class="list-item">
-                    <div><span class="${isOn?'badge-online':'badge-offline'}"></span><b>${this.nameHtml(frs[fk], fk)}</b> <span class="muted" style="font-size:11px">(${isOn?'Online':'Offline'})</span></div>
+                    <div><span class="${isOn?'badge-online':'badge-offline'}"></span><b>${this.nameHtml(frs[fk], fk, {link:true})}</b> <span class="muted" style="font-size:11px">(${isOn?'Online':'Offline'})</span></div>
                     <div class="row">
                         ${canInvite ? `<button class="btn primary" style="padding:6px 12px;font-size:12px" onclick="app.sendInvite('${fk}')">📩 In Raum einladen</button>` : `<span class="muted" style="font-size:11px">Öffne ein Spiel zum Einladen</span>`}
                     </div>
