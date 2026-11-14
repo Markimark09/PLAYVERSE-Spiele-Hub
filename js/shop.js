@@ -58,7 +58,9 @@
     { id:'win_1',      ico:'⚔️', name:'Erster Sieg',     desc:'Gewinne ein Online-Match',                     reward:20, test:d => Number(d.stats && d.stats.wins || 0) >= 1 },
     { id:'win_10',     ico:'🏆', name:'Online-Champion', desc:'Gewinne 10 Online-Matches',                    reward:60, test:d => Number(d.stats && d.stats.wins || 0) >= 10 },
     { id:'chatter',    ico:'💬', name:'Plaudertasche',   desc:'Schreibe 10 Chat-Nachrichten',                 reward:10, test:d => Number(d.stats && d.stats.chat || 0) >= 10 },
-    { id:'bonus_25',   ico:'🎟️', name:'Bonus-Sammler',   desc:'Hole 25 Abschluss-Boni ab',                    reward:30, test:d => Number(d.claimTotal || 0) >= 25 }
+    { id:'bonus_25',   ico:'🎟️', name:'Bonus-Sammler',   desc:'Hole 25 Abschluss-Boni ab',                    reward:30, test:d => Number(d.claimTotal || 0) >= 25 },
+    { id:'clan',       ico:'🛡️', name:'Teamplayer',      desc:'Tritt einem Clan bei oder gründe einen',        reward:15, test:d => !!d.clan },
+    { id:'tournament', ico:'🏁', name:'Turnier-Teilnehmer', desc:'Spiele im Wochen-Turnier mit',               reward:20, test:d => Number(d.stats && d.stats.tour || 0) >= 1 }
   ];
   app.SHOP = SHOP; app.ACH = ACH; app.DAILY = DAILY;
   app.cosmMap = {};
@@ -72,24 +74,28 @@
   app.cosmOf = function(key){
     const raw = (key && key === this.currentUser && this.userData) ? userCosm(this.userData) : ((key && this.cosmMap && this.cosmMap[key]) || {});
     const pick = (id, slot) => (typeof id === 'string' && BY_ID[id] && BY_ID[id].slot === slot) ? BY_ID[id] : null;
-    return { c: pick(raw.c, 'c'), t: pick(raw.t, 't'), a: pick(raw.a, 'a') };   // unbekannte/manipulierte IDs werden ignoriert
+    const kRaw = (key && key === this.currentUser && this.userData) ? this.userData.clan : raw.k;
+    return { c: pick(raw.c, 'c'), t: pick(raw.t, 't'), a: pick(raw.a, 'a'),      // unbekannte/manipulierte IDs werden ignoriert
+             k: (typeof kRaw === 'string' && /^[A-Z0-9]{2,4}$/.test(kRaw)) ? kRaw : '' };
   };
   app.nameHtml = function(name, key, opts){
     const z = this.cosmOf(key);
     let nm = esc(name);
     if(z.c) nm = z.c.val === 'rainbow' ? `<span class="nm-rainbow">${nm}</span>` : `<span style="color:${z.c.val}">${nm}</span>`;
-    return (z.a ? z.a.val + ' ' : '') + nm + (this.isVipKey(key) ? ' ' + this.vipBadgeHtml() : '') +
+    const who = (z.a ? z.a.val + ' ' : '') + nm;
+    const linked = (opts && opts.link && /^[a-z0-9_-]{1,32}$/.test(key || '')) ? `<a class="nm-link" onclick="app.openProfile('${key}')">${who}</a>` : who;
+    return (z.k ? `<span class="nm-clan">[${z.k}]</span> ` : '') + linked + (this.isVipKey(key) ? ' ' + this.vipBadgeHtml() : '') +
            ((opts && opts.title && z.t) ? ` <span class="nm-title">${esc(z.t.name)}</span>` : '');
   };
   app.syncCosmetics = function(d){
     const key = this.currentUser;
     if(!key || !db || !d) return;
-    const c = userCosm(d), sig = key + '|' + c.c + '|' + c.t + '|' + c.a;
+    const c = userCosm(d), kk = /^[A-Z0-9]{2,4}$/.test(d.clan || '') ? d.clan : '', sig = key + '|' + c.c + '|' + c.t + '|' + c.a + '|' + kk;
     if(this._cosSig === sig) return;
     this._cosSig = sig;
     const ref = db.ref('playverseCosmetics/' + key);
-    if(!(c.c || c.t || c.a)){ if(this.cosmMap && this.cosmMap[key]) ref.remove().catch(e => this.dbErr('Kosmetik', e)); return; }
-    ref.set({ c: c.c, t: c.t, a: c.a }).catch(e => { this._cosSig = null; this.dbErr('Kosmetik', e); });
+    if(!(c.c || c.t || c.a || kk)){ if(this.cosmMap && this.cosmMap[key]) ref.remove().catch(e => this.dbErr('Kosmetik', e)); return; }
+    ref.set({ c: c.c, t: c.t, a: c.a, k: kk }).catch(e => { this._cosSig = null; this.dbErr('Kosmetik', e); });
   };
 
   // ======================================================  Tägliche Belohnung
@@ -101,7 +107,7 @@
     const next = claimable ? ((d.dailyDay === yest) ? streakNow + 1 : 1) : streakNow;
     const base = DAILY[(Math.max(next, 1) - 1) % DAILY.length];
     const vip = this.isVipKey(this.currentUser);
-    return { claimable, next, base, reward: Math.round(base * (vip ? DAILY_VIP_FACTOR : 1)), vip, streak: streakNow };
+    return { claimable, next, base, reward: Math.round(base * (vip ? DAILY_VIP_FACTOR : 1) * this.eventMult('double_daily')), vip, streak: streakNow };
   };
   app.claimDaily = function(){
     if(!this.currentUser || !db || !this.userData || this.dailyBusy) return;
@@ -115,7 +121,7 @@
       if(cur.dailyDay === today) return;                                   // heute schon abgeholt
       const streak = cur.dailyDay === yest ? Number(cur.dailyStreak || 0) + 1 : 1;
       const vip = Number(cur.vipUntil || 0) > now;
-      const reward = Math.round(DAILY[(streak - 1) % DAILY.length] * (vip ? DAILY_VIP_FACTOR : 1));
+      const reward = Math.round(DAILY[(streak - 1) % DAILY.length] * (vip ? DAILY_VIP_FACTOR : 1) * self.eventMult('double_daily'));
       cur.arcadeTickets = Number(cur.arcadeTickets || 0) + reward;
       cur.dailyDay = today; cur.dailyStreak = streak; cur.dailyBest = Math.max(Number(cur.dailyBest || 0), streak);
       res.ok = true; res.reward = reward; res.streak = streak;
@@ -257,9 +263,10 @@
     if(!this.currentUser || !db) return;
     db.ref('playverseUsers/' + this.currentUser + '/stats/' + path).transaction(v => (Number(v) || 0) + 1).catch(() => {});
   };
-  app.statMark = function(path){
-    if(!this.currentUser || !db) return;
-    db.ref('playverseUsers/' + this.currentUser + '/stats/' + path).set(true).catch(() => {});
+  app.statMark = function(path, user){
+    user = user || this.currentUser;
+    if(!user || !db) return;
+    db.ref('playverseUsers/' + user + '/stats/' + path).set(true).catch(() => {});
   };
 
   // ======================================================  Einhängen in bestehende Abläufe
