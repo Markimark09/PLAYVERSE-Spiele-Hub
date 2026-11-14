@@ -6,6 +6,8 @@
 
   // ---- Hier neue Einträge oben ergänzen (ts = Date.UTC(Jahr, Monat-1, Tag, Stunde)) ----
   const BUILTIN = [
+    { ts: Date.UTC(2026, 10, 14, 12), tag: 'NEU',    title: 'Profile, Wochen-Turnier, Events & Clans',
+      text: 'Klicke auf einen Namen, um das Profil zu öffnen. Jede Woche gibt es ein neues Turnier-Spiel mit Ticket-Preisen für die Top 3. Gründe einen Clan und zeige dein Kürzel [TAG] überall. Dazu kommen Events wie Doppel-Tickets – schau im Bereich „Turniere“ vorbei!' },
     { ts: Date.UTC(2026, 10, 13, 18), tag: 'NEU',    title: 'Shop, Tagesbelohnung & Erfolge',
       text: 'Hol dir jeden Tag Gratis-Tickets (je länger deine Serie, desto mehr – VIP +50 %). Im neuen Shop kaufst du Namensfarben, Titel, Avatare und den Doppel-Bonus. 14 Erfolge bringen zusätzliche Tickets!' },
     { ts: Date.UTC(2026, 10, 13, 12), tag: 'NEU',    title: 'Action-Paket: Neon Arena, Space Shooter & Snake-Battle',
