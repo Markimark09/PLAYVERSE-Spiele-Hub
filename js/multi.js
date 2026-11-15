@@ -51,7 +51,7 @@ window.multi = (function(){
         if(!s.exists()) return alert('Raum nicht gefunden.');
         let d = s.val();
         let pCount = Object.keys(d.players||{}).length;
-        let maxP = (d.game === 'colorwar' || d.game === 'ludo') ? 4 : 2;
+        let maxP = (window.boards && boards[d.game] && boards[d.game].maxP) || ((d.game === 'colorwar' || d.game === 'ludo') ? 4 : 2);
         if(pCount >= maxP) return alert('Raum ist bereits voll.');
         if(window.boards && boards[d.game] && boards[d.game].canJoin){ let jm = boards[d.game].canJoin(d); if(jm) return alert(jm); }
         M.player = 'p' + (pCount + 1); 
