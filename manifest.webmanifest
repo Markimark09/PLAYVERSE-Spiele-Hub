@@ -1,0 +1,19 @@
+{
+  "name": "PLAYVERSE – Arcade & Multiplayer",
+  "short_name": "PLAYVERSE",
+  "description": "Über 70 Arcade- und Mehrspieler-Spiele mit Freunden, Bestenlisten, Turnieren und Clans.",
+  "id": "./",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#090b18",
+  "theme_color": "#090b18",
+  "lang": "de",
+  "categories": ["games", "entertainment"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
