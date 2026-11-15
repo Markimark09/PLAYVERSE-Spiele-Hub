@@ -32,7 +32,7 @@
     if(!d.since && this._sinceSet !== key){ this._sinceSet = key; db.ref('playverseUsers/' + key + '/since').transaction(v => v || app.now()).catch(() => {}); }
     const ach = {}; Object.keys(d.ach || {}).forEach(k => { ach[k] = 1; });
     const p = { name: d.displayName || key, bio: String(d.bio || '').slice(0, 140), since: Number(d.since || 0),
-                wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', ach: cnt(ach) ? ach : null };
+                wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: Number(d.lvl || 1), ach: cnt(ach) ? ach : null };
     const sig = JSON.stringify(p) + key;
     if(this._profSig === sig) return;
     this._profSig = sig;
@@ -61,7 +61,7 @@
       if(key === this.currentUser && this.userData){            // eigenes Profil: immer aktuelle Daten
         const d = this.userData, ach = {}; Object.keys(d.ach || {}).forEach(k => ach[k] = 1);
         p = Object.assign({}, p, { name: d.displayName || key, bio: d.bio || '', since: d.since || p.since, wins: (d.stats && d.stats.wins) || 0,
-                                   games: cnt(d.stats && d.stats.g), clan: d.clan || '', ach });
+                                   games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: d.lvl || 1, ach });
       }
       this.renderProfile(key, p);
     }).catch(e => { box.innerHTML = '<div style="color:var(--red,#ff526f)">Profil konnte nicht geladen werden.</div>'; this.dbErr('Profil', e); });
@@ -86,6 +86,7 @@
         </div>
       </div>
       <div class="chips">
+        <span class="chip">⭐ Level ${Number(p.lvl || 1)}</span>
         <span class="chip">⚔️ ${Number(p.wins || 0)} Online-Siege</span>
         <span class="chip">🎮 ${Number(p.games || 0)} Spiele mit Highscore</span>
         <span class="chip">🏅 ${ACH.filter(a => got[a.id]).length}/${ACH.length} Erfolge</span>${clanChip}
@@ -186,6 +187,7 @@
       cur.tourClaim = cur.tourClaim || {};
       if(cur.tourClaim[wk]) return;
       cur.tourClaim[wk] = tp.prize;
+      if(self.xpApply) self.xpApply(cur, 30);
       cur.arcadeTickets = Number(cur.arcadeTickets || 0) + tp.prize;
       ok = true; return cur;
     }).then(r => {
