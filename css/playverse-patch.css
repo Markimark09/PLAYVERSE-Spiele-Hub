@@ -32,30 +32,30 @@
 /* Chat: Formatierung, GIFs, Spoiler */
 .chat-gif{display:block;max-width:220px;max-height:200px;border-radius:10px;margin:4px 0;background:#0a0d1e}
 .chat-tenor{display:block;width:240px;max-width:100%;height:210px;border:0;border-radius:10px;margin:4px 0;background:#0a0d1e}
-.chat-code{background:#0a0d1e;border:1px solid #2a3560;border-radius:5px;padding:0 5px;font-family:ui-monospace,Consolas,monospace;font-size:.92em}
-.chat-spoiler{background:#2a3560;color:transparent;border-radius:4px;cursor:pointer;padding:0 3px;user-select:none}
-.chat-spoiler.on{color:inherit;background:#1c2542;user-select:auto}
+.chat-code{background:#0a0d1e;border:1px solid var(--pv-line,#2a3560);border-radius:5px;padding:0 5px;font-family:ui-monospace,Consolas,monospace;font-size:.92em}
+.chat-spoiler{background:var(--pv-line,#2a3560);color:transparent;border-radius:4px;cursor:pointer;padding:0 3px;user-select:none}
+.chat-spoiler.on{color:inherit;background:var(--pv-card2,#1c2542);user-select:auto}
 .chat-msg a{color:var(--cyan,#66e3ff);word-break:break-all}
 
 /* Paket 2: Shop, Tagesbelohnung, Erfolge, Namens-Kosmetik */
 .nm-rainbow{background:linear-gradient(90deg,#ff5d73,#ffb347,#ffd36b,#b8f36b,#66e3ff,#c9a0ff,#ff6fa5,#ff5d73);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:nmRb 4s linear infinite;font-weight:700}
 @keyframes nmRb{to{background-position:200% 0}}
 .nm-title{display:inline-block;font-size:10px;padding:0 7px;border-radius:999px;border:1px solid #4a5a96;color:#aeb9e8;vertical-align:middle;white-space:nowrap;margin-left:2px}
-.daily-card{padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,#1c2542,#141a33);border:1px solid #2a3560}
+.daily-card{padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,var(--pv-card2,#1c2542),var(--pv-card,#141a33));border:1px solid var(--pv-line,#2a3560)}
 .daily-strip{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.daily-day{text-align:center;padding:7px 2px;border-radius:10px;background:#0f1530;border:1px solid #2a3560;font-size:11px}
+.daily-day{text-align:center;padding:7px 2px;border-radius:10px;background:var(--pv-bg2,#0f1530);border:1px solid var(--pv-line,#2a3560);font-size:11px}
 .daily-day .dd-r{font-weight:700;margin-top:3px;font-size:12px}
 .daily-day.done{opacity:.55;border-color:#3a6b2b}
 .daily-day.now{border-color:#ffd36b;box-shadow:0 0 12px #ffd36b66;background:#2a2210}
 .shop-h{margin:18px 0 8px;font-size:14px;color:var(--cyan,#66e3ff)}
 .shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
-.shop-item{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:12px 8px;border-radius:12px;background:#121935;border:1px solid #2a3560}
+.shop-item{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:12px 8px;border-radius:12px;background:var(--pv-card2,#121935);border:1px solid var(--pv-line,#2a3560)}
 .shop-item.on{border-color:#b8f36b;box-shadow:0 0 10px #b8f36b44}
 .si-prev{min-height:30px;display:flex;align-items:center;font-weight:700}
 .si-name{font-size:12px;color:#aeb9e8;min-height:14px}
-.ach-bar{height:8px;border-radius:99px;background:#0f1530;overflow:hidden;margin-bottom:12px}
+.ach-bar{height:8px;border-radius:99px;background:var(--pv-bg2,#0f1530);overflow:hidden;margin-bottom:12px}
 .ach-bar i{display:block;height:100%;background:linear-gradient(90deg,#66e3ff,#b8f36b)}
-.ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:12px;background:#121935;border:1px solid #2a3560;opacity:.7}
+.ach-item{display:flex;align-items:center;gap:12px;padding:10px 12px;margin-bottom:8px;border-radius:12px;background:var(--pv-card2,#121935);border:1px solid var(--pv-line,#2a3560);opacity:.7}
 .ach-item.ok{opacity:1;border-color:#b8f36b66}
 .ach-ico{font-size:24px;width:34px;text-align:center}
 
@@ -64,14 +64,58 @@
 .nm-link:hover{text-decoration:underline}
 .nm-clan{display:inline-block;font-size:.8em;font-weight:800;color:#ffd36b;letter-spacing:.04em}
 .event-banner{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:12px 16px;border-radius:14px;
-  background:linear-gradient(135deg,#3a1c52,#1c2542);border:1px solid #ff6fa588;box-shadow:0 0 18px #ff6fa533}
+  background:linear-gradient(135deg,#3a1c52,var(--pv-card2,#1c2542));border:1px solid #ff6fa588;box-shadow:0 0 18px #ff6fa533}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12px;background:#121935;border:1px solid #2a3560;color:#cfd6f5}
-.tour-card{padding:16px 18px;border-radius:16px;background:linear-gradient(135deg,#182a4d,#141a33);border:1px solid #2a4a7a}
+.chip{display:inline-block;padding:4px 11px;border-radius:999px;font-size:12px;background:var(--pv-card2,#121935);border:1px solid var(--pv-line,#2a3560);color:#cfd6f5}
+.tour-card{padding:16px 18px;border-radius:16px;background:linear-gradient(135deg,#182a4d,var(--pv-card,#141a33));border:1px solid #2a4a7a}
 .prof-head{display:flex;gap:16px;align-items:center;flex-wrap:wrap}
-.prof-av{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px;background:#121935;border:2px solid #2a3560}
+.prof-av{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:42px;background:var(--pv-card2,#121935);border:2px solid var(--pv-line,#2a3560)}
 .prof-name{font-size:22px;font-weight:800}
 .prof-bio{margin-top:6px;font-size:14px;color:#cfd6f5;white-space:pre-wrap}
 .prof-ach{display:flex;flex-wrap:wrap;gap:8px}
-.prof-ach-i{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:10px;background:#0f1530;border:1px solid #2a3560;opacity:.55}
+.prof-ach-i{width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-size:20px;border-radius:10px;background:var(--pv-bg2,#0f1530);border:1px solid var(--pv-line,#2a3560);opacity:.55}
 .prof-ach-i.ok{opacity:1;border-color:#b8f36b88}
+
+/* Paket 4: Level, Quests, Saison-Pass */
+.prog-lvl{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,var(--pv-card2,#1c2542),var(--pv-card,#141a33));border:1px solid var(--pv-line,#2a3560)}
+.prog-lvl-n{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:900;color:#2b1d00;background:linear-gradient(135deg,#ffe58a,#f5a623);box-shadow:0 0 14px #f5a62366}
+.sp-wrap{display:flex;gap:8px;margin-top:10px}
+.sp-lbl{display:flex;flex-direction:column;gap:6px;padding-top:26px;font-size:11px;color:#aeb9e8;min-width:48px}
+.sp-lbl div{height:34px;display:flex;align-items:center}
+.sp-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;flex:1}
+.sp-col{min-width:64px;display:flex;flex-direction:column;gap:6px;opacity:.6}
+.sp-col.reached{opacity:1}
+.sp-n{height:20px;text-align:center;font-size:11px;font-weight:800;color:#ffd36b}
+.sp-cell{height:34px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--pv-card2,#121935);border:1px solid var(--pv-line,#2a3560);font-size:11px;white-space:nowrap}
+.sp-cell.vip{border-color:#f5a62344;background:#1d1a14}
+.sp-cell.got{border-color:#b8f36b88;color:#b8f36b}
+.sp-cell.can{border-color:#ffd36b;box-shadow:0 0 10px #ffd36b55}
+
+/* Paket 6: Einstellungen & Farbthemen */
+.set-row{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+.set-row input[type=range]{accent-color:var(--pv-a1,#8b5cf6)}
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.theme-opt{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px;border-radius:12px;background:var(--pv-card2,#121935);border:2px solid var(--pv-line,#2a3560);color:inherit;font:inherit;font-size:13px;cursor:pointer}
+.theme-opt.on{border-color:#b8f36b;box-shadow:0 0 10px #b8f36b44}
+.theme-sw{width:44px;height:44px;border-radius:50%;box-shadow:0 0 12px #0008}
+html[data-theme="neon"]{--pv-bg:#0e0820;--pv-bg2:#150d2b;--pv-card:#1b1233;--pv-card2:#241846;--pv-line:#4b2a7a;--pv-a1:#ff2e93;--pv-a2:#8b5cf6}
+html[data-theme="ocean"]{--pv-bg:#06141f;--pv-bg2:#0a1c2c;--pv-card:#0c2236;--pv-card2:#102b45;--pv-line:#1f4b6e;--pv-a1:#22d3ee;--pv-a2:#3b82f6}
+html[data-theme="forest"]{--pv-bg:#07140d;--pv-bg2:#0b1d12;--pv-card:#0e2418;--pv-card2:#133020;--pv-line:#24573a;--pv-a1:#84cc16;--pv-a2:#22c55e}
+html[data-theme="sunset"]{--pv-bg:#1a0b0b;--pv-bg2:#240f0f;--pv-card:#2b1414;--pv-card2:#391a1a;--pv-line:#6b2f1f;--pv-a1:#fb923c;--pv-a2:#ef4444}
+html[data-theme="mono"]{--pv-bg:#0d0d0d;--pv-bg2:#141414;--pv-card:#1a1a1a;--pv-card2:#232323;--pv-line:#3a3a3a;--pv-a1:#e5e7eb;--pv-a2:#9ca3af}
+html[data-theme]:not([data-theme="default"]) body{background:var(--pv-bg) !important}
+html[data-theme]:not([data-theme="default"]) .card,
+html[data-theme]:not([data-theme="default"]) .panel,
+html[data-theme]:not([data-theme="default"]) .modal,
+html[data-theme]:not([data-theme="default"]) .chat-window,
+html[data-theme]:not([data-theme="default"]) .list-box,
+html[data-theme]:not([data-theme="default"]) .note{background:var(--pv-card) !important;border-color:var(--pv-line) !important}
+html[data-theme]:not([data-theme="default"]) input,
+html[data-theme]:not([data-theme="default"]) select,
+html[data-theme]:not([data-theme="default"]) textarea{background:var(--pv-bg2) !important;border-color:var(--pv-line) !important}
+html[data-theme]:not([data-theme="default"]) .btn:not(.primary){background:var(--pv-card2) !important;border-color:var(--pv-line) !important}
+html[data-theme]:not([data-theme="default"]) .btn.primary{background:linear-gradient(135deg,var(--pv-a1),var(--pv-a2)) !important;border-color:transparent !important;color:#fff !important}
+html[data-theme="mono"] .btn.primary{color:#111 !important}
+html[data-theme]:not([data-theme="default"]) .subtab.active{background:linear-gradient(135deg,var(--pv-a1),var(--pv-a2)) !important;color:#fff !important}
+html[data-theme="mono"] .subtab.active{color:#111 !important}
+html[data-theme]:not([data-theme="default"]) .blob{opacity:.35}
