@@ -1,3 +1,4 @@
+
 const firebaseConfig = {
   apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
   authDomain: "playverse-bce37.firebaseapp.com",
