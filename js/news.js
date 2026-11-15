@@ -6,6 +6,12 @@
 
   // ---- Hier neue Einträge oben ergänzen (ts = Date.UTC(Jahr, Monat-1, Tag, Stunde)) ----
   const BUILTIN = [
+    { ts: Date.UTC(2026, 10, 15, 18), tag: 'NEU',    title: 'Sounds, Musik, Farbthemen & Handy-App',
+      text: 'Unter ⚙️ findest du jetzt Soundeffekte, Hintergrundmusik (Chill, Arcade, Fokus), 6 Farbthemen und Vibration. PLAYVERSE lässt sich außerdem als App auf dem Handy installieren und startet auch offline.' },
+    { ts: Date.UTC(2026, 10, 15, 12), tag: 'NEU',    title: '4 neue Mehrspieler-Spiele',
+      text: 'Zeichnen-Duell (2–6 Spieler: einer zeichnet, alle raten), Dame, Reversi und Käsekästchen warten im Mehrspieler-Tab. Raum erstellen, Code teilen, losspielen!' },
+    { ts: Date.UTC(2026, 10, 14, 18), tag: 'NEU',    title: 'Level, Quests & Saison-Pass',
+      text: 'Sammle XP, steige im Level auf und erhalte bei jedem Level Tickets. Jeden Tag warten 3 neue Quests, und der monatliche Saison-Pass mit 20 Stufen bringt Tickets und exklusive Titel – VIPs bekommen eine Extra-Belohnungsreihe!' },
     { ts: Date.UTC(2026, 10, 14, 12), tag: 'NEU',    title: 'Profile, Wochen-Turnier, Events & Clans',
       text: 'Klicke auf einen Namen, um das Profil zu öffnen. Jede Woche gibt es ein neues Turnier-Spiel mit Ticket-Preisen für die Top 3. Gründe einen Clan und zeige dein Kürzel [TAG] überall. Dazu kommen Events wie Doppel-Tickets – schau im Bereich „Turniere“ vorbei!' },
     { ts: Date.UTC(2026, 10, 13, 18), tag: 'NEU',    title: 'Shop, Tagesbelohnung & Erfolge',
