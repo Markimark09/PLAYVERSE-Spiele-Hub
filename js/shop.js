@@ -34,6 +34,9 @@
     { id:'a_unicorn',slot:'a', name:'Einhorn',  val:'🦄', price:40 },
     { id:'a_fire',   slot:'a', name:'Feuer',    val:'🔥', price:50 },
     { id:'a_crown',  slot:'a', name:'Krone',    val:'👑', price:150 },
+    { id:'t_season', slot:'t', name:'Saison-Meister', price:0, excl:true },     // nur über den Saison-Pass
+    { id:'t_vipstar',slot:'t', name:'VIP-Sterne',     price:0, excl:true },
+    { id:'a_season', slot:'a', name:'Medaille', val:'🏅', price:0, excl:true },
     { id:'boost24',  slot:'boost', name:'Doppel-Bonus (24 Std.)', val:'⚡', price:60,
       desc:'Der Abschluss-Bonus nach Spielen zählt 24 Stunden lang doppelt.' }
   ];
@@ -60,7 +63,10 @@
     { id:'chatter',    ico:'💬', name:'Plaudertasche',   desc:'Schreibe 10 Chat-Nachrichten',                 reward:10, test:d => Number(d.stats && d.stats.chat || 0) >= 10 },
     { id:'bonus_25',   ico:'🎟️', name:'Bonus-Sammler',   desc:'Hole 25 Abschluss-Boni ab',                    reward:30, test:d => Number(d.claimTotal || 0) >= 25 },
     { id:'clan',       ico:'🛡️', name:'Teamplayer',      desc:'Tritt einem Clan bei oder gründe einen',        reward:15, test:d => !!d.clan },
-    { id:'tournament', ico:'🏁', name:'Turnier-Teilnehmer', desc:'Spiele im Wochen-Turnier mit',               reward:20, test:d => Number(d.stats && d.stats.tour || 0) >= 1 }
+    { id:'tournament', ico:'🏁', name:'Turnier-Teilnehmer', desc:'Spiele im Wochen-Turnier mit',               reward:20, test:d => Number(d.stats && d.stats.tour || 0) >= 1 },
+    { id:'lvl_10',     ico:'⭐', name:'Level 10',        desc:'Erreiche Level 10',                             reward:30, test:d => Number(d.lvl || 1) >= 10 },
+    { id:'lvl_25',     ico:'🌟', name:'Level 25',        desc:'Erreiche Level 25',                             reward:80, test:d => Number(d.lvl || 1) >= 25 },
+    { id:'quest_10',   ico:'🎯', name:'Quest-Jäger',     desc:'Schaffe 10 tägliche Quests',                    reward:30, test:d => Number(d.stats && d.stats.quests || 0) >= 10 }
   ];
   app.SHOP = SHOP; app.ACH = ACH; app.DAILY = DAILY;
   app.cosmMap = {};
@@ -123,6 +129,7 @@
       const vip = Number(cur.vipUntil || 0) > now;
       const reward = Math.round(DAILY[(streak - 1) % DAILY.length] * (vip ? DAILY_VIP_FACTOR : 1) * self.eventMult('double_daily'));
       cur.arcadeTickets = Number(cur.arcadeTickets || 0) + reward;
+      if(self.xpApply) self.xpApply(cur, 10);
       cur.dailyDay = today; cur.dailyStreak = streak; cur.dailyBest = Math.max(Number(cur.dailyBest || 0), streak);
       res.ok = true; res.reward = reward; res.streak = streak;
       return cur;
@@ -168,7 +175,7 @@
       : `Du hast <b>${tickets} 🎟️</b>. Gekaufte Farben, Titel und Avatare siehst du überall: im Header, Chat, in der Freundesliste und in den Bestenlisten.`;
     const grid = $('shopGrid'); if(!grid) return;
     grid.innerHTML = ['c', 't', 'a', 'boost'].map(slot => {
-      const items = SHOP.filter(x => x.slot === slot).map(it => {
+      const items = SHOP.filter(x => x.slot === slot && (!x.excl || owned[x.id])).map(it => {
         const has = !!owned[it.id], on = eq[slot] === it.id;
         let prev = slot === 'c' ? (it.val === 'rainbow' ? '<span class="nm-rainbow">Beispiel</span>' : `<span style="color:${it.val}">Beispiel</span>`)
                  : slot === 't' ? `<span class="nm-title">${esc(it.name)}</span>` : `<span style="font-size:24px">${it.val}</span>`;
@@ -192,7 +199,7 @@
   };
   app.buyItem = function(id){
     const it = BY_ID[id];
-    if(!it || !db || !this.currentUser || this.shopBusy) return;
+    if(!it || it.excl || !db || !this.currentUser || this.shopBusy) return;
     this.shopBusy = true;
     const self = this; let why = '';
     db.ref('playverseUsers/' + this.currentUser).transaction(cur => {
@@ -252,6 +259,7 @@
         if(cur.ach[a.id]) return;
         cur.ach[a.id] = self.now();
         cur.arcadeTickets = Number(cur.arcadeTickets || 0) + a.reward;
+        if(self.xpApply) self.xpApply(cur, 25);
         fresh = true;
         return cur;
       }).then(r => { if(r.committed && fresh) self.toast(`🏅 Erfolg: ${a.name}  (+${a.reward} 🎟️)`); });
