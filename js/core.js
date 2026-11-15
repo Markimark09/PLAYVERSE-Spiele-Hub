@@ -1,3 +1,4 @@
+
 const firebaseConfig = {
   apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
   authDomain: "playverse-bce37.firebaseapp.com",
@@ -236,6 +237,7 @@ window.app = {
             let amt = self.CLAIM_AMOUNT * Math.max(Number(cur.boostUntil || 0) > now ? 2 : 1, self.eventMult('double_bonus'));
             cur.arcadeTickets = Number(cur.arcadeTickets || 0) + amt;
             cur.claimTotal = Number(cur.claimTotal || 0) + 1;
+            if(self.xpApply) self.xpApply(cur, 10);
             cur.lastClaimAt = now;
             cur.claimDay = day;
             cur.claimCount = cnt + 1;
@@ -248,6 +250,7 @@ window.app = {
                 let total = Number((res.snapshot.val() || {}).arcadeTickets || 0);
                 if(btn) { btn.disabled = true; btn.textContent = '✅ +' + (result.amt || this.CLAIM_AMOUNT) + ' Tickets gutgeschrieben!'; }
                 if(tmr) tmr.textContent = 'Neuer Kontostand: ' + total + ' 🎟️';
+                if(this.questEvent) this.questEvent('bonus');
                 setTimeout(() => this.hideClaimBar(), 4000);
             } else if(result.reason === 'daily') {
                 this.toast('Tageslimit erreicht (' + this.CLAIM_DAILY_MAX + ' Bonus-Gutschriften). Morgen geht es weiter!', 'err');
@@ -377,6 +380,7 @@ window.app = {
         if(this.currentUser) msg.uid = this.currentUser;
         inp.value = '';
         if(this.statInc) this.statInc('chat');
+        if(this.questEvent) this.questEvent('chat');
         db.ref('playverseGlobalChat').push(msg).catch(err => {
             inp.value = text;                 // Nachricht nicht verlieren
             this.dbErr('Chat senden', err);
@@ -519,6 +523,7 @@ window.app = {
             return;
         }
         if(this.tourSubmit) this.tourSubmit(gameId, score);      // Wochen-Turnier (zählt auch ohne neuen Allzeit-Rekord)
+        if(this.questEvent){ this.questEvent('game', { game: gameId }); this.questEvent('score', { game: gameId, score }); }   // Quests
         let ck = this.currentUser + '|' + gameId;
         let prev = this.lbLocalBest[ck];
         if(prev !== undefined && (asc ? score >= prev : score <= prev)) return;   // nicht besser als zuletzt gemeldet
@@ -548,7 +553,7 @@ window.app = {
             improved = true;
             return { name: p.name, score: p.score, ts: firebase.database.ServerValue.TIMESTAMP };
         }).then(res => {
-            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId, p.user); if(self.profBest) self.profBest(gameId, p.score, p.user); }
+            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId, p.user); if(self.profBest) self.profBest(gameId, p.score, p.user); if(self.addXp) self.addXp(15, 'Bestwert', p.user); }
         }).catch(err => {
             delete self.lbLocalBest[p.user + '|' + gameId];
             self.dbErr('Highscore speichern', err);
@@ -561,7 +566,7 @@ window.app = {
             name: name,
             score: Number((cur && cur.score) || 0) + 1,
             ts: firebase.database.ServerValue.TIMESTAMP
-        })).then(() => { this.toast('⚔️ Online-Sieg gezählt!'); if(this.statInc) this.statInc('wins'); }).catch(err => this.dbErr('Sieg speichern', err));
+        })).then(() => { this.toast('⚔️ Online-Sieg gezählt!'); if(this.statInc) this.statInc('wins'); if(this.addXp) this.addXp(30, 'Sieg'); if(this.questEvent) this.questEvent('win'); }).catch(err => this.dbErr('Sieg speichern', err));
     },
     // öffentliches Mini-Profil für die Ticket-Rangliste + VIP-Anzeige (kein Passwort!)
     syncPublicProfile: function(d) {
@@ -648,7 +653,7 @@ window.app = {
         document.getElementById('hubModal').classList.remove('open');
     },
     openSubTab: function(tab) {
-        ['acc','friends','tickets','shop','ach','leaderboard'].forEach(k => {
+        ['acc','friends','tickets','shop','ach','prog','settings','leaderboard'].forEach(k => {
             let st = document.getElementById('st-'+k);
             let pn = document.getElementById('pane-'+k);
             if(st) st.classList.toggle('active', k===tab);
@@ -701,6 +706,7 @@ window.app = {
         });
     },
     completeLogin: function(key, data) {
+        const prevUser = this.currentUser;
         this.currentUser = key;
         this.userData = data;
         localStorage.setItem('pv_user', key);
@@ -711,7 +717,10 @@ window.app = {
         if(hn) hn.value = data.displayName || key;
         if(jn) jn.value = data.displayName || key;
 
-        if(this.userListener) db.ref('playverseUsers/' + key).off('value', this.userListener);
+        if(this.userListener){                                   // alten Listener am ALTEN Konto abmelden (nicht nur am neuen)
+            db.ref('playverseUsers/' + key).off('value', this.userListener);
+            if(prevUser && prevUser !== key) db.ref('playverseUsers/' + prevUser).off('value', this.userListener);
+        }
         this.userListener = s => {
             if(!s.exists()) return;
             this.userData = s.val();
@@ -722,7 +731,10 @@ window.app = {
         };
         db.ref('playverseUsers/' + key).on('value', this.userListener, err => this.dbErr('Konto', err));
 
-        if(this.ticketsListener) db.ref('playverseTickets/' + key).off('value', this.ticketsListener);
+        if(this.ticketsListener){
+            db.ref('playverseTickets/' + key).off('value', this.ticketsListener);
+            if(prevUser && prevUser !== key) db.ref('playverseTickets/' + prevUser).off('value', this.ticketsListener);
+        }
         this.ticketsListener = s => {
             this.cachedMyTickets = s.val() || {};
             this.renderTicketsList(this.cachedMyTickets);
