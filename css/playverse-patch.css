@@ -119,3 +119,12 @@ html[data-theme="mono"] .btn.primary{color:#111 !important}
 html[data-theme]:not([data-theme="default"]) .subtab.active{background:linear-gradient(135deg,var(--pv-a1),var(--pv-a2)) !important;color:#fff !important}
 html[data-theme="mono"] .subtab.active{color:#111 !important}
 html[data-theme]:not([data-theme="default"]) .blob{opacity:.35}
+
+/* Paket 7: Prestige & Pausen-Erinnerung */
+.nm-pres{display:inline-block;font-size:.8em;font-weight:800;color:#ffe58a;text-shadow:0 0 8px #ffe58a66}
+.prog-pres{margin-top:10px;padding:8px 12px;border-radius:10px;border:1px solid #ffe58a66;background:#2a2210;font-size:13px;color:#ffe58a}
+.pv-break{position:fixed;left:50%;bottom:78px;transform:translate(-50%,24px);width:min(94vw,440px);padding:14px 16px;border-radius:14px;background:var(--pv-card2,#121935);border:1px solid #66e3ff88;box-shadow:0 10px 34px #000b;z-index:99998;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s}
+.pv-break.show{opacity:1;pointer-events:auto;transform:translate(-50%,0)}
+.pv-break-t{font-weight:800;font-size:16px;margin-bottom:4px}
+.pv-break-s{font-size:13px;color:#cfd6f5;margin-bottom:10px;line-height:1.45}
+.pv-break .btn{margin:2px 4px 2px 0;font-size:13px}

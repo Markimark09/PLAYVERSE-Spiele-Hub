@@ -34,6 +34,10 @@
     { id:'a_unicorn',slot:'a', name:'Einhorn',  val:'🦄', price:40 },
     { id:'a_fire',   slot:'a', name:'Feuer',    val:'🔥', price:50 },
     { id:'a_crown',  slot:'a', name:'Krone',    val:'👑', price:150 },
+    { id:'t_prestige1', slot:'t', name:'Wiedergeboren', price:0, excl:true },    // nur über Prestige
+    { id:'a_prestige',  slot:'a', name:'Sternschnuppe', val:'🌠', price:0, excl:true },
+    { id:'t_prestige5', slot:'t', name:'Unsterblich', price:0, excl:true },
+    { id:'c_prestige',  slot:'c', name:'Prestige-Gold', val:'#ffe58a', price:0, excl:true },
     { id:'t_season', slot:'t', name:'Saison-Meister', price:0, excl:true },     // nur über den Saison-Pass
     { id:'t_vipstar',slot:'t', name:'VIP-Sterne',     price:0, excl:true },
     { id:'a_season', slot:'a', name:'Medaille', val:'🏅', price:0, excl:true },
@@ -66,7 +70,11 @@
     { id:'tournament', ico:'🏁', name:'Turnier-Teilnehmer', desc:'Spiele im Wochen-Turnier mit',               reward:20, test:d => Number(d.stats && d.stats.tour || 0) >= 1 },
     { id:'lvl_10',     ico:'⭐', name:'Level 10',        desc:'Erreiche Level 10',                             reward:30, test:d => Number(d.lvl || 1) >= 10 },
     { id:'lvl_25',     ico:'🌟', name:'Level 25',        desc:'Erreiche Level 25',                             reward:80, test:d => Number(d.lvl || 1) >= 25 },
-    { id:'quest_10',   ico:'🎯', name:'Quest-Jäger',     desc:'Schaffe 10 tägliche Quests',                    reward:30, test:d => Number(d.stats && d.stats.quests || 0) >= 10 }
+    { id:'quest_10',   ico:'🎯', name:'Quest-Jäger',     desc:'Schaffe 10 tägliche Quests',                    reward:30, test:d => Number(d.stats && d.stats.quests || 0) >= 10 },
+    { id:'mast_bronze10', ico:'🥉', name:'Allseits Bronze', desc:'Erreiche in 10 Spielen mindestens Bronze',    reward:60, test:d => Object.keys(d.mastery || {}).filter(k => Number(d.mastery[k].t || 0) >= 1).length >= 10 },
+    { id:'mast_gold3', ico:'🥇', name:'Dreifach Gold',   desc:'Erreiche in 3 Spielen mindestens Gold',          reward:40, test:d => Object.keys(d.mastery || {}).filter(k => Number(d.mastery[k].t || 0) >= 3).length >= 3 },
+    { id:'mast_dia1',  ico:'💎', name:'Diamant!',        desc:'Erreiche in einem Spiel die Stufe Diamant',      reward:80, test:d => Object.keys(d.mastery || {}).some(k => Number(d.mastery[k].t || 0) >= 5) },
+    { id:'prestige_1', ico:'⭐', name:'Wiedergeboren',   desc:'Starte dein erstes Prestige',                    reward:100, test:d => Number(d.prestige || 0) >= 1 }
   ];
   app.SHOP = SHOP; app.ACH = ACH; app.DAILY = DAILY;
   app.cosmMap = {};
@@ -80,9 +88,11 @@
   app.cosmOf = function(key){
     const raw = (key && key === this.currentUser && this.userData) ? userCosm(this.userData) : ((key && this.cosmMap && this.cosmMap[key]) || {});
     const pick = (id, slot) => (typeof id === 'string' && BY_ID[id] && BY_ID[id].slot === slot) ? BY_ID[id] : null;
-    const kRaw = (key && key === this.currentUser && this.userData) ? this.userData.clan : raw.k;
+    const self = (key && key === this.currentUser && this.userData);
+    const kRaw = self ? this.userData.clan : raw.k, pRaw = self ? this.userData.prestige : raw.p;
     return { c: pick(raw.c, 'c'), t: pick(raw.t, 't'), a: pick(raw.a, 'a'),      // unbekannte/manipulierte IDs werden ignoriert
-             k: (typeof kRaw === 'string' && /^[A-Z0-9]{2,4}$/.test(kRaw)) ? kRaw : '' };
+      k: (typeof kRaw === 'string' && /^[A-Z0-9]{2,4}$/.test(kRaw)) ? kRaw : '',
+      p: (Number.isInteger(Number(pRaw)) && Number(pRaw) > 0 && Number(pRaw) < 100) ? Number(pRaw) : 0 };
   };
   app.nameHtml = function(name, key, opts){
     const z = this.cosmOf(key);
@@ -90,18 +100,18 @@
     if(z.c) nm = z.c.val === 'rainbow' ? `<span class="nm-rainbow">${nm}</span>` : `<span style="color:${z.c.val}">${nm}</span>`;
     const who = (z.a ? z.a.val + ' ' : '') + nm;
     const linked = (opts && opts.link && /^[a-z0-9_-]{1,32}$/.test(key || '')) ? `<a class="nm-link" onclick="app.openProfile('${key}')">${who}</a>` : who;
-    return (z.k ? `<span class="nm-clan">[${z.k}]</span> ` : '') + linked + (this.isVipKey(key) ? ' ' + this.vipBadgeHtml() : '') +
-           ((opts && opts.title && z.t) ? ` <span class="nm-title">${esc(z.t.name)}</span>` : '');
+    return (z.k ? `<span class="nm-clan">[${z.k}]</span> ` : '') + (z.p ? `<span class="nm-pres" title="Prestige ${z.p}">✦${z.p}</span> ` : '') + linked + (this.isVipKey(key) ? ' ' + this.vipBadgeHtml() : '') +
+        ((opts && opts.title && z.t) ? ` <span class="nm-title">${esc(z.t.name)}</span>` : '');
   };
   app.syncCosmetics = function(d){
     const key = this.currentUser;
     if(!key || !db || !d) return;
-    const c = userCosm(d), kk = /^[A-Z0-9]{2,4}$/.test(d.clan || '') ? d.clan : '', sig = key + '|' + c.c + '|' + c.t + '|' + c.a + '|' + kk;
+    const c = userCosm(d), kk = /^[A-Z0-9]{2,4}$/.test(d.clan || '') ? d.clan : '', pp = Math.max(0, Math.min(99, Number(d.prestige || 0) | 0)), sig = key + '|' + c.c + '|' + c.t + '|' + c.a + '|' + kk + '|' + pp;
     if(this._cosSig === sig) return;
     this._cosSig = sig;
     const ref = db.ref('playverseCosmetics/' + key);
-    if(!(c.c || c.t || c.a || kk)){ if(this.cosmMap && this.cosmMap[key]) ref.remove().catch(e => this.dbErr('Kosmetik', e)); return; }
-    ref.set({ c: c.c, t: c.t, a: c.a, k: kk }).catch(e => { this._cosSig = null; this.dbErr('Kosmetik', e); });
+    if(!(c.c || c.t || c.a || kk || pp)){ if(this.cosmMap && this.cosmMap[key]) ref.remove().catch(e => this.dbErr('Kosmetik', e)); return; }
+    ref.set({ c: c.c, t: c.t, a: c.a, k: kk, p: pp }).catch(e => { this._cosSig = null; this.dbErr('Kosmetik', e); });
   };
 
   // ======================================================  Tägliche Belohnung
@@ -171,14 +181,14 @@
     renderDaily();
     const bu = Number(d.boostUntil || 0), bi = $('boostInfo');
     if(bi) bi.innerHTML = bu > app.now()
-      ? `⚡ <b>Doppel-Bonus aktiv</b> – noch ${Math.max(1, Math.ceil((bu - app.now()) / 3600000))} Std.`
-      : `Du hast <b>${tickets} 🎟️</b>. Gekaufte Farben, Titel und Avatare siehst du überall: im Header, Chat, in der Freundesliste und in den Bestenlisten.`;
+        ? `⚡ <b>Doppel-Bonus aktiv</b> – noch ${Math.max(1, Math.ceil((bu - app.now()) / 3600000))} Std.`
+        : `Du hast <b>${tickets} 🎟️</b>. Gekaufte Farben, Titel und Avatare siehst du überall: im Header, Chat, in der Freundesliste und in den Bestenlisten.`;
     const grid = $('shopGrid'); if(!grid) return;
     grid.innerHTML = ['c', 't', 'a', 'boost'].map(slot => {
       const items = SHOP.filter(x => x.slot === slot && (!x.excl || owned[x.id])).map(it => {
         const has = !!owned[it.id], on = eq[slot] === it.id;
         let prev = slot === 'c' ? (it.val === 'rainbow' ? '<span class="nm-rainbow">Beispiel</span>' : `<span style="color:${it.val}">Beispiel</span>`)
-                 : slot === 't' ? `<span class="nm-title">${esc(it.name)}</span>` : `<span style="font-size:24px">${it.val}</span>`;
+            : slot === 't' ? `<span class="nm-title">${esc(it.name)}</span>` : `<span style="font-size:24px">${it.val}</span>`;
         const label = slot === 'boost' ? `Kaufen · ${it.price} 🎟️` : has ? (on ? '✓ Angelegt – ablegen' : 'Anlegen') : `Kaufen · ${it.price} 🎟️`;
         const buy = slot === 'boost' || !has;
         return `<div class="shop-item${on ? ' on' : ''}">
@@ -288,7 +298,7 @@
   function listen(){
     if(typeof db === 'undefined' || !db) return;
     db.ref('playverseCosmetics').on('value', s => { app.cosmMap = s.val() || {}; app.refreshVipViews(); },
-      err => console.warn('[PLAYVERSE] Kosmetik-Liste:', err));
+        err => console.warn('[PLAYVERSE] Kosmetik-Liste:', err));
     setInterval(() => { app.updateDailyDot(); }, 60000);
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', listen); else listen();

@@ -49,6 +49,7 @@
   function xpApply(cur, amount){
     amount = Math.round(Number(amount));
     if(!(amount > 0)) return;
+    amount = Math.max(1, Math.round(amount * (1 + 0.05 * Math.min(Number(cur.prestige || 0), 10))));   // Prestige: +5 % XP je Stufe (max. +50 %)
     const old = levelOf(cur.xp || 0).level;
     cur.xp = Number(cur.xp || 0) + amount;
     const nw = levelOf(cur.xp).level;
@@ -61,7 +62,7 @@
     user = user || this.currentUser;
     if(!user || !db) return;
     db.ref('playverseUsers/' + user).transaction(cur => { if(cur === null) return cur; xpApply(cur, amount); return cur; })
-      .catch(e => this.dbErr('XP', e));
+        .catch(e => this.dbErr('XP', e));
   };
 
   // ======================================================  Quests
@@ -185,12 +186,12 @@
     const today = dayStr(now), q = (d.quests && d.quests.day === today) ? d.quests : { p: {}, d: {} };
     const nextDay = (new Date(today + 'T00:00:00Z').getTime() + 864e5) - now, hh = Math.floor(nextDay / 36e5);
     $('progQuests').innerHTML = `<div class="muted" style="font-size:12px;margin-bottom:8px">Neue Quests in ca. ${hh} Std. (00:00 UTC)</div>` +
-      questsFor(this.currentUser, today).map(Q => {
-        const v = Math.min(Number((q.p || {})[Q.id] || 0), Q.target), ok = !!(q.d || {})[Q.id];
-        return `<div class="ach-item${ok ? ' ok' : ''}" style="opacity:1"><div class="ach-ico">${ok ? '✅' : '🎯'}</div><div style="flex:1">
+        questsFor(this.currentUser, today).map(Q => {
+          const v = Math.min(Number((q.p || {})[Q.id] || 0), Q.target), ok = !!(q.d || {})[Q.id];
+          return `<div class="ach-item${ok ? ' ok' : ''}" style="opacity:1"><div class="ach-ico">${ok ? '✅' : '🎯'}</div><div style="flex:1">
           <b>${esc(Q.name)}</b><div class="ach-bar" style="margin:6px 0 2px;height:6px"><i style="width:${Math.round(v / Q.target * 100)}%"></i></div>
           <div class="muted" style="font-size:12px">${v} / ${Q.target} · ${ok ? 'geschafft' : `Belohnung: +${Q.tk} 🎟️ +${Q.xp} XP`}</div></div></div>`;
-      }).join('');
+        }).join('');
     // Saison-Pass
     const s = (d.season && d.season.id === seasonId(now)) ? d.season : { xp: 0, claimed: {} }, sxp = Number(s.xp || 0), claimed = s.claimed || {};
     const tierNow = Math.min(TIERS, Math.floor(sxp / TIER_XP)), left = Math.max(1, Math.ceil((seasonEnd(now) - now) / 864e5));

@@ -6,6 +6,8 @@
 
   // ---- Hier neue Einträge oben ergänzen (ts = Date.UTC(Jahr, Monat-1, Tag, Stunde)) ----
   const BUILTIN = [
+    { ts: Date.UTC(2026, 10, 16, 12), tag: 'NEU',    title: 'Meisterschaft & Prestige',
+      text: 'Jedes Spiel hat jetzt 5 Meisterschafts-Stufen von Bronze bis Diamant – mit Tickets und XP bei jeder Stufe. Wer Level 100 erreicht, kann ein Prestige starten: Neustart mit dauerhaftem XP-Bonus und exklusiven Gegenständen. Außerdem gibt es eine freundliche Pausen-Erinnerung (in den Einstellungen abschaltbar).' },
     { ts: Date.UTC(2026, 10, 15, 18), tag: 'NEU',    title: 'Sounds, Musik, Farbthemen & Handy-App',
       text: 'Unter ⚙️ findest du jetzt Soundeffekte, Hintergrundmusik (Chill, Arcade, Fokus), 6 Farbthemen und Vibration. PLAYVERSE lässt sich außerdem als App auf dem Handy installieren und startet auch offline.' },
     { ts: Date.UTC(2026, 10, 15, 12), tag: 'NEU',    title: '4 neue Mehrspieler-Spiele',
@@ -94,8 +96,8 @@
     if(!title || !text){ app.toast('Bitte Titel und Text ausfüllen.', 'err'); return; }
     if(!db){ app.toast('Firebase nicht erreichbar.', 'err'); return; }
     db.ref('playverseNews').push({ title, text, tag: g.value || 'INFO', ts: firebase.database.ServerValue.TIMESTAMP })
-      .then(() => { t.value = ''; x.value = ''; app.toast('📰 News veröffentlicht!'); })
-      .catch(err => app.dbErr('News veröffentlichen', err));
+        .then(() => { t.value = ''; x.value = ''; app.toast('📰 News veröffentlicht!'); })
+        .catch(err => app.dbErr('News veröffentlichen', err));
   };
   app.deleteNews = function(id){
     if(!db || !confirm('Diese News wirklich löschen?')) return;

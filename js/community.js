@@ -32,7 +32,7 @@
     if(!d.since && this._sinceSet !== key){ this._sinceSet = key; db.ref('playverseUsers/' + key + '/since').transaction(v => v || app.now()).catch(() => {}); }
     const ach = {}; Object.keys(d.ach || {}).forEach(k => { ach[k] = 1; });
     const p = { name: d.displayName || key, bio: String(d.bio || '').slice(0, 140), since: Number(d.since || 0),
-                wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: Number(d.lvl || 1), ach: cnt(ach) ? ach : null };
+      wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: Number(d.lvl || 1), prestige: Number(d.prestige || 0), mast: (() => { const m = {}; Object.keys(d.mastery || {}).forEach(g => { const t = Number(d.mastery[g].t || 0); if(t > 0) m[g] = t; }); return cnt(m) ? m : null; })(), ach: cnt(ach) ? ach : null };
     const sig = JSON.stringify(p) + key;
     if(this._profSig === sig) return;
     this._profSig = sig;
@@ -61,7 +61,7 @@
       if(key === this.currentUser && this.userData){            // eigenes Profil: immer aktuelle Daten
         const d = this.userData, ach = {}; Object.keys(d.ach || {}).forEach(k => ach[k] = 1);
         p = Object.assign({}, p, { name: d.displayName || key, bio: d.bio || '', since: d.since || p.since, wins: (d.stats && d.stats.wins) || 0,
-                                   games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: d.lvl || 1, ach });
+          games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: d.lvl || 1, prestige: d.prestige || 0, mast: (() => { const m = {}; Object.keys(d.mastery || {}).forEach(g => { const t = Number(d.mastery[g].t || 0); if(t > 0) m[g] = t; }); return m; })(), ach });
       }
       this.renderProfile(key, p);
     }).catch(e => { box.innerHTML = '<div style="color:var(--red,#ff526f)">Profil konnte nicht geladen werden.</div>'; this.dbErr('Profil', e); });
@@ -74,7 +74,7 @@
     const online = !!this.onlineUsers[key];
     const best = p.best || {};
     const rows = Object.keys(this.LB_GAMES).filter(g => best[g] !== undefined && this.LB_GAMES[g]).map(g =>
-      `<div class="list-item"><span>${this.LB_GAMES[g].ico} ${esc(this.LB_GAMES[g].name)}</span><span class="pill ticket-pill">${esc(this.fmtScore(g, best[g]))}</span></div>`).join('');
+        `<div class="list-item"><span>${this.LB_GAMES[g].ico} ${esc(this.LB_GAMES[g].name)}</span><span class="pill ticket-pill">${esc(this.fmtScore(g, best[g]))}</span></div>`).join('');
     const clanChip = p.clan && /^[A-Z0-9]{2,4}$/.test(p.clan) ? `<span class="chip" style="cursor:pointer" onclick="app.openEvents('clan')">🛡️ [${esc(p.clan)}]</span>` : '';
     box.innerHTML = `
       <div class="prof-head">
@@ -86,7 +86,7 @@
         </div>
       </div>
       <div class="chips">
-        <span class="chip">⭐ Level ${Number(p.lvl || 1)}</span>
+        <span class="chip">⭐ Level ${Number(p.lvl || 1)}</span>${Number(p.prestige || 0) > 0 ? `<span class="chip" style="border-color:#ffe58a;color:#ffe58a">✦ Prestige ${Number(p.prestige)}</span>` : ''}
         <span class="chip">⚔️ ${Number(p.wins || 0)} Online-Siege</span>
         <span class="chip">🎮 ${Number(p.games || 0)} Spiele mit Highscore</span>
         <span class="chip">🏅 ${ACH.filter(a => got[a.id]).length}/${ACH.length} Erfolge</span>${clanChip}
@@ -97,13 +97,14 @@
       ${(!me && this.currentUser) ? `<div style="margin-top:14px"><button class="btn primary" onclick="app.profFriend('${key}')">➕ Freundschaftsanfrage senden</button> <span id="profMsg" class="muted" style="font-size:12px"></span></div>` : ''}
       <h4 class="shop-h">🏅 Erfolge</h4>
       <div class="prof-ach">${ACH.map(a => `<span class="prof-ach-i${got[a.id] ? ' ok' : ''}" title="${esc(a.name)}: ${esc(a.desc)}">${got[a.id] ? a.ico : '🔒'}</span>`).join('')}</div>
+      ${(() => { const T = this.MAST_TIERS || [], ms = p.mast || {}, ks = Object.keys(ms).filter(g => this.LB_GAMES[g] && T[ms[g] - 1]); return ks.length ? `<h4 class="shop-h">🏅 Meisterschaft</h4><div class="chips">${ks.map(g => `<span class="chip" title="${esc(this.LB_GAMES[g].name)}: ${T[ms[g] - 1].name}" style="border-color:${T[ms[g] - 1].col}">${this.LB_GAMES[g].ico} ${T[ms[g] - 1].ico}</span>`).join('')}</div>` : ''; })()}
       <h4 class="shop-h">🏆 Bestwerte</h4>
       <div class="list-box">${rows || '<div class="muted" style="font-size:13px">Noch keine Highscores gespeichert.</div>'}</div>`;
   };
   app.saveBio = function(){
     const inp = $('bioInput'); if(!inp || !this.currentUser || !db) return;
     db.ref('playverseUsers/' + this.currentUser + '/bio').set(inp.value.trim().slice(0, 140))
-      .then(() => this.toast('✓ Beschreibung gespeichert')).catch(e => this.dbErr('Beschreibung', e));
+        .then(() => this.toast('✓ Beschreibung gespeichert')).catch(e => this.dbErr('Beschreibung', e));
   };
   app.profFriend = function(key){
     if(!this.currentUser || !db || key === this.currentUser) return;
@@ -111,7 +112,7 @@
     db.ref('playverseUsers/' + key).once('value').then(s => {
       if(!s.exists()){ if(m) m.textContent = 'Spieler nicht gefunden.'; return; }
       return db.ref('playverseUsers/' + key + '/requests/' + this.currentUser).set(this.userData.displayName || this.currentUser)
-        .then(() => { if(m) m.textContent = 'Anfrage gesendet!'; });
+          .then(() => { if(m) m.textContent = 'Anfrage gesendet!'; });
     }).catch(e => this.dbErr('Freundschaftsanfrage', e));
   };
   app.openMyProfile = function(){ if(this.currentUser) this.openProfile(this.currentUser); else this.openModal('acc'); };
@@ -216,15 +217,15 @@
       b.innerHTML = rows.length ? rows.slice(0, 10).map((r, i) => `<div class="list-item" style="${r.key === this.currentUser ? 'background:#1c2948;border-radius:10px' : ''}">
           <div><strong style="display:inline-block;width:36px;color:var(--gold)">${['🥇', '🥈', '🥉'][i] || '#' + (i + 1)}</strong> <b>${this.nameHtml(r.name, r.key, { title: true, link: true })}</b></div>
           <span class="pill ticket-pill">${cfg.ico} ${esc(this.fmtScore(w.game, r.score))}</span></div>`).join('') +
-        (me >= 10 ? `<div class="muted" style="font-size:12px;margin-top:8px">Dein Platz: <b>#${me + 1}</b> (${esc(this.fmtScore(w.game, rows[me].score))})</div>` : '')
-        : '<div class="muted" style="font-size:13px">Noch keine Ergebnisse – sei der Erste!</div>';
+          (me >= 10 ? `<div class="muted" style="font-size:12px;margin-top:8px">Dein Platz: <b>#${me + 1}</b> (${esc(this.fmtScore(w.game, rows[me].score))})</div>` : '')
+          : '<div class="muted" style="font-size:13px">Noch keine Ergebnisse – sei der Erste!</div>';
     }).catch(e => { const b = $('tourBoard'); if(b) b.innerHTML = '<div style="color:var(--red,#ff526f)">Rangliste nicht ladbar.</div>'; this.dbErr('Turnier', e); });
     const tp = this.tourPrize, pv = $('tourPrev');
     if(pv) pv.innerHTML = `<h4 class="shop-h">Letzte Woche · ${esc(this.LB_GAMES[prevG].name)}</h4>` + (tp
-      ? `<div class="daily-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        ? `<div class="daily-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
            <div>Du warst ${tp.rank === 99 ? 'dabei' : 'auf <b>Platz ' + tp.rank + '</b>'} – dein Preis wartet!</div>
            <button class="btn primary" onclick="app.claimTourPrize()">🎁 Abholen (+${tp.prize} 🎟️)</button></div></div>`
-      : '<div class="muted" style="font-size:13px">Kein offener Preis aus der Vorwoche.</div>');
+        : '<div class="muted" style="font-size:13px">Kein offener Preis aus der Vorwoche.</div>');
   };
 
   // ======================================================  EVENTS
@@ -252,10 +253,10 @@
     const e = this.eventNow, live = e && Number(e.until) > this.now();
     const t = live ? (EVENT_TYPES[e.type] || EVENT_TYPES.info) : null;
     box.innerHTML = (live
-      ? `<div class="event-banner" style="display:flex"><span style="font-size:30px">${t.ico}</span><div style="flex:1"><b>${esc(e.title || t.name)}</b>
+            ? `<div class="event-banner" style="display:flex"><span style="font-size:30px">${t.ico}</span><div style="flex:1"><b>${esc(e.title || t.name)}</b>
           <div style="font-size:13px">${esc(e.text || t.desc)}</div><div class="muted" style="font-size:12px;margin-top:4px">Läuft bis ${new Date(e.until).toLocaleString('de-DE')}</div></div></div>`
-      : '<div class="muted" style="font-size:14px;padding:6px 0 14px">Aktuell läuft kein Event. Schau bald wieder vorbei – Events bringen doppelte Tickets und mehr!</div>') +
-      `<div style="margin-top:14px"><button class="btn" style="font-size:12px" onclick="app.eventsAdminLogin()">👑 Admin</button></div>
+            : '<div class="muted" style="font-size:14px;padding:6px 0 14px">Aktuell läuft kein Event. Schau bald wieder vorbei – Events bringen doppelte Tickets und mehr!</div>') +
+        `<div style="margin-top:14px"><button class="btn" style="font-size:12px" onclick="app.eventsAdminLogin()">👑 Admin</button></div>
        <div id="eventAdminBox" style="display:${this.eventsAdmin ? 'block' : 'none'};margin-top:12px;padding:14px;border:1px dashed #4a5a96;border-radius:12px">
          <h4 style="margin:0 0 8px;font-size:14px;color:var(--cyan)">EVENT STARTEN</h4>
          <div class="field"><label>Art</label><select id="evType">${Object.keys(EVENT_TYPES).map(k => `<option value="${k}">${EVENT_TYPES[k].ico} ${EVENT_TYPES[k].name}</option>`).join('')}</select></div>
@@ -277,8 +278,8 @@
     const type = $('evType').value, hours = Number($('evHours').value) || 24;
     if(!EVENT_TYPES[type]) return;
     db.ref('playverseEvents/current').set({ type, title: ($('evTitle').value || '').trim().slice(0, 60), text: ($('evText').value || '').trim().slice(0, 140),
-                                           until: this.now() + hours * 36e5, ts: firebase.database.ServerValue.TIMESTAMP })
-      .then(() => this.toast('🚀 Event gestartet!')).catch(e => this.dbErr('Event', e));
+      until: this.now() + hours * 36e5, ts: firebase.database.ServerValue.TIMESTAMP })
+        .then(() => this.toast('🚀 Event gestartet!')).catch(e => this.dbErr('Event', e));
   };
   app.endEvent = function(){
     if(!this.eventsAdmin || !db) return;
@@ -317,7 +318,7 @@
       html += `<h4 class="shop-h">Alle Clans</h4><div class="list-box">` + (rows.length ? rows.map(v => `<div class="list-item">
           <span><span class="nm-clan">[${esc(v.tag)}]</span> <b>${esc(v.name)}</b> <span class="muted" style="font-size:12px">· ${v.n || 0}/${CLAN_MAX}</span></span>
           ${(!mine && (v.n || 0) < CLAN_MAX) ? `<button class="btn primary" style="font-size:12px;padding:4px 10px" onclick="app.joinClan('${esc(v.tag)}')">Beitreten</button>` : ''}</div>`).join('')
-        : '<div class="muted" style="font-size:13px">Noch keine Clans – gründe den ersten!</div>') + '</div>';
+          : '<div class="muted" style="font-size:13px">Noch keine Clans – gründe den ersten!</div>') + '</div>';
       box.innerHTML = html;
     }).catch(e => { box.innerHTML = '<div style="color:var(--red,#ff526f)">Clans nicht ladbar.</div>'; this.dbErr('Clans', e); });
   };
@@ -379,14 +380,14 @@
     this.clanBusy = true;
     const self = this, key = this.currentUser;
     db.ref('playverseUsers/' + key + '/clan').set(null).then(() =>
-      db.ref('playverseClans/' + tag).transaction(cur => {
-        if(cur === null) return cur;
-        cur.members = cur.members || {}; delete cur.members[key];
-        const left = Object.keys(cur.members);
-        if(!left.length) return null;                                                 // letzter Spieler: Clan wird gelöscht
-        cur.n = left.length; if(cur.owner === key) cur.owner = left[0];
-        return cur;
-      })
+        db.ref('playverseClans/' + tag).transaction(cur => {
+          if(cur === null) return cur;
+          cur.members = cur.members || {}; delete cur.members[key];
+          const left = Object.keys(cur.members);
+          if(!left.length) return null;                                                 // letzter Spieler: Clan wird gelöscht
+          cur.n = left.length; if(cur.owner === key) cur.owner = left[0];
+          return cur;
+        })
     ).then(() => self.toast('Clan verlassen.')).catch(e => self.dbErr('Clan verlassen', e)).then(() => { self.clanBusy = false; self.renderClanPane(); });
   };
 
@@ -410,7 +411,7 @@
   function listen(){
     if(typeof db === 'undefined' || !db) return;
     db.ref('playverseEvents/current').on('value', s => { app.eventNow = s.val() || null; app.renderEventBanner(); },
-      err => console.warn('[PLAYVERSE] Event-Listener:', err));
+        err => console.warn('[PLAYVERSE] Event-Listener:', err));
     setInterval(() => app.renderEventBanner(), 60000);
   }
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', listen); else listen();

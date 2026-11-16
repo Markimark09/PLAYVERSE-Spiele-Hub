@@ -1,36 +1,35 @@
-
 const firebaseConfig = {
-  apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
-  authDomain: "playverse-bce37.firebaseapp.com",
-  databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "playverse-bce37",
-  storageBucket: "playverse-bce37.firebasestorage.app",
-  messagingSenderId: "884239855268",
-  appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
+    apiKey: "AIzaSyCBSidRZEMcqhTVxRiWzQ3-Fn5-yD-AS0M",
+    authDomain: "playverse-bce37.firebaseapp.com",
+    databaseURL: "https://playverse-bce37-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "playverse-bce37",
+    storageBucket: "playverse-bce37.firebasestorage.app",
+    messagingSenderId: "884239855268",
+    appId: "1:884239855268:web:80c6abe3f74fa643eb0031"
 };
 let db=null, presRef=null;
 try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.database();
-  let connRef = db.ref('.info/connected');
-  connRef.on('value', s => {
-    if(s.val()===true){
-       presRef = db.ref('playversePresence').push();
-       presRef.onDisconnect().remove();
-       presRef.set(true);
-       if(window.app && window.app.currentUser) {
-           window.app.setOnlineStatus(window.app.currentUser);
-       }
-    }
-  });
-  db.ref('.info/serverTimeOffset').on('value', s => {
-     window.__pvOffset = Number(s.val()) || 0;
-     if(window.app) window.app.serverOffset = window.__pvOffset;
-  });
-  db.ref('playversePresence').on('value', s => {
-     let el = document.getElementById('onlineCount');
-     if(el) el.textContent = Math.max(1, s.numChildren());
-  });
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    let connRef = db.ref('.info/connected');
+    connRef.on('value', s => {
+        if(s.val()===true){
+            presRef = db.ref('playversePresence').push();
+            presRef.onDisconnect().remove();
+            presRef.set(true);
+            if(window.app && window.app.currentUser) {
+                window.app.setOnlineStatus(window.app.currentUser);
+            }
+        }
+    });
+    db.ref('.info/serverTimeOffset').on('value', s => {
+        window.__pvOffset = Number(s.val()) || 0;
+        if(window.app) window.app.serverOffset = window.__pvOffset;
+    });
+    db.ref('playversePresence').on('value', s => {
+        let el = document.getElementById('onlineCount');
+        if(el) el.textContent = Math.max(1, s.numChildren());
+    });
 } catch(e) { console.warn("Firebase Init Error:", e) }
 
 window.app = {
@@ -406,7 +405,7 @@ window.app = {
     CHAT_TTL_MS: 2 * 24 * 3600 * 1000,
     isChatImageHost: function(h) {
         return /^(media\d*|c)\.tenor\.com$/.test(h) || /^(media\d*|i)\.giphy\.com$/.test(h) || h === 'i.imgur.com' ||
-               h === 'media.discordapp.net' || h === 'cdn.discordapp.com' || h === 'i.redd.it' || h === 'preview.redd.it';
+            h === 'media.discordapp.net' || h === 'cdn.discordapp.com' || h === 'i.redd.it' || h === 'preview.redd.it';
     },
     formatChat: function(raw) {
         // Unterstützt: **fett**, *kursiv*, ~~durchgestrichen~~, `code`, ||spoiler||, https-Links,
@@ -444,9 +443,9 @@ window.app = {
             return hold(link) + trail;
         });
         s = s.replace(/\*\*([^\n]+?)\*\*/g, '<b>$1</b>')
-             .replace(/\*(?!\s)([^*\n]*?[^*\s])\*/g, '<i>$1</i>')
-             .replace(/~~([^\n]+?)~~/g, '<s>$1</s>')
-             .replace(/\|\|([^\n]+?)\|\|/g, '<span class="chat-spoiler" title="Klicken zum Aufdecken" onclick="this.classList.toggle(\'on\')">$1</span>');
+            .replace(/\*(?!\s)([^*\n]*?[^*\s])\*/g, '<i>$1</i>')
+            .replace(/~~([^\n]+?)~~/g, '<s>$1</s>')
+            .replace(/\|\|([^\n]+?)\|\|/g, '<span class="chat-spoiler" title="Klicken zum Aufdecken" onclick="this.classList.toggle(\'on\')">$1</span>');
         return s.replace(/\u0001(\d+)\u0001/g, (m, i) => stash[Number(i)] || '');
     },
     cleanupChat: function() {
@@ -553,7 +552,7 @@ window.app = {
             improved = true;
             return { name: p.name, score: p.score, ts: firebase.database.ServerValue.TIMESTAMP };
         }).then(res => {
-            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId, p.user); if(self.profBest) self.profBest(gameId, p.score, p.user); if(self.addXp) self.addXp(15, 'Bestwert', p.user); }
+            if(res.committed && improved){ self.toast('🏆 Neuer Bestwert in ' + cfg.name + ': ' + self.fmtScore(gameId, p.score)); if(self.statMark) self.statMark('g/' + gameId, p.user); if(self.profBest) self.profBest(gameId, p.score, p.user); if(self.addXp) self.addXp(15, 'Bestwert', p.user); if(self.masteryCheck) self.masteryCheck(gameId, p.score, p.user); }
         }).catch(err => {
             delete self.lbLocalBest[p.user + '|' + gameId];
             self.dbErr('Highscore speichern', err);
@@ -653,7 +652,7 @@ window.app = {
         document.getElementById('hubModal').classList.remove('open');
     },
     openSubTab: function(tab) {
-        ['acc','friends','tickets','shop','ach','prog','settings','leaderboard'].forEach(k => {
+        ['acc','friends','tickets','shop','ach','prog','mast','settings','leaderboard'].forEach(k => {
             let st = document.getElementById('st-'+k);
             let pn = document.getElementById('pane-'+k);
             if(st) st.classList.toggle('active', k===tab);

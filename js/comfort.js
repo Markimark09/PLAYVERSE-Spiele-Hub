@@ -8,7 +8,8 @@
   const esc = s => app.escapeHtml(s);
 
   // ======================================================  Einstellungen
-  const DEFAULTS = { sfx: true, sfxVol: 0.6, music: 'off', musVol: 0.25, theme: 'default', vibrate: true };
+  const DEFAULTS = { sfx: true, sfxVol: 0.6, music: 'off', musVol: 0.25, theme: 'default', vibrate: true, breakMin: 60 };
+  const BREAKS = [0, 30, 45, 60, 90, 120];                  // Pausen-Erinnerung in Minuten (0 = aus)
   const THEMES = {
     default: { name: 'Standard',   a: '#8b5cf6', b: '#22d3ee', meta: '#090b18' },
     neon:    { name: 'Neon-Nacht', a: '#ff2e93', b: '#8b5cf6', meta: '#0e0820' },
@@ -26,6 +27,7 @@
     o.sfxVol = Math.max(0, Math.min(1, Number(o.sfxVol))); o.musVol = Math.max(0, Math.min(1, Number(o.musVol)));
     if(!isFinite(o.sfxVol)) o.sfxVol = DEFAULTS.sfxVol; if(!isFinite(o.musVol)) o.musVol = DEFAULTS.musVol;
     o.sfx = !!o.sfx; o.vibrate = !!o.vibrate;
+    o.breakMin = BREAKS.indexOf(Number(o.breakMin)) >= 0 ? Number(o.breakMin) : DEFAULTS.breakMin;
     return o;
   }
   app.settings = load();
@@ -138,6 +140,7 @@
     if(key === 'theme' && !THEMES[value]) return;
     if(key === 'music' && !MOODS[value]) return;
     if(key === 'sfx' || key === 'vibrate') value = !!value;
+    if(key === 'breakMin'){ value = Number(value); if(BREAKS.indexOf(value) < 0) return; }
     app.settings[key] = value; save();
     if(key === 'theme') app.applyTheme();
     if(key === 'music'){ if(value === 'off') app.musicStop(); else { gestured = true; app.musicStart(value); } }
@@ -145,8 +148,9 @@
     if(key === 'sfxVol' && sfxG) sfxG.gain.value = value;
     if(key === 'sfx' && value) { gestured = true; app.sfx('coin'); }
     if(key === 'vibrate' && value) vib(40);
+    if(key === 'breakMin'){ if(!value) app.hideBreak(); else app.checkBreak(); }
     if(key === 'sfxVol') app.sfx('click');
-    if(key === 'theme' || key === 'music' || key === 'sfx' || key === 'vibrate') app.renderSettings();
+    if(key === 'theme' || key === 'music' || key === 'sfx' || key === 'vibrate' || key === 'breakMin') app.renderSettings();
   };
 
   // ======================================================  Töne bei vorhandenen Ereignissen (über die Toast-Meldungen)
@@ -179,6 +183,45 @@
     } catch(e) {}
   };
 
+  // ======================================================  Spielzeit & freundliche Pausen-Erinnerung
+  // Es zählt nur aktive Zeit (Tab sichtbar, in den letzten 2 Min. bedient). 5 Min. Ruhe gelten als Pause.
+  const PLAY_KEY = 'pv_play', ACTIVE_MS = 120000, IDLE_BREAK_MS = 300000, SNOOZE_MS = 15 * 60000;
+  const localDay = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
+  let play = (() => { let p = {}; try { p = JSON.parse(localStorage.getItem(PLAY_KEY) || '{}') || {}; } catch(e) {} return p.day === localDay() ? { day: p.day, today: Number(p.today) || 0, since: Number(p.since) || 0 } : { day: localDay(), today: 0, since: 0 }; })();
+  let lastAct = Date.now(), snoozeUntil = 0;
+  const savePlay = () => { try { localStorage.setItem(PLAY_KEY, JSON.stringify(play)); } catch(e) {} };
+  const fmtDur = s => { const m = Math.floor(s / 60), h = Math.floor(m / 60); return h > 0 ? h + ' Std. ' + (m % 60) + ' Min.' : Math.max(1, m) + ' Min.'; };
+  app.playInfo = () => ({ today: play.today, since: play.since, todayText: fmtDur(play.today), sinceText: fmtDur(play.since) });
+  app.hideBreak = function(){ const el = document.getElementById('pvBreak'); if(el) el.className = 'pv-break'; };
+  app.showBreak = function(){
+    let el = document.getElementById('pvBreak');
+    if(!el){ el = document.createElement('div'); el.id = 'pvBreak'; document.body.appendChild(el); }
+    const tips = ['Trink einen Schluck Wasser 💧', 'Streck dich kurz und schau mal aus dem Fenster 🌤️', 'Ein paar Schritte tun gut 🚶', 'Gönn deinen Augen eine kleine Pause 👀'];
+    el.innerHTML = `<div class="pv-break-t">⏰ Zeit für eine kleine Pause?</div><div class="pv-break-s">Du spielst seit <b>${fmtDur(play.since)}</b> am Stück. ${tips[Math.floor(Math.random() * tips.length)]} – deine Highscores laufen nicht weg!</div>
+      <div><button class="btn primary" onclick="app.breakTaken()">☕ Pause machen</button><button class="btn" onclick="app.breakSnooze()">In 15 Min. erinnern</button><button class="btn" onclick="app.setSetting('breakMin',0)">Nicht mehr erinnern</button></div>`;
+    el.className = 'pv-break show';
+  };
+  app.checkBreak = function(){
+    const thr = app.settings.breakMin * 60;
+    if(!thr || play.since < thr || Date.now() < snoozeUntil) return;
+    app.showBreak();
+  };
+  app.breakTaken = function(){ play.since = 0; snoozeUntil = 0; savePlay(); app.hideBreak(); app.toast('☕ Gute Pause! Bis gleich.'); };
+  app.breakSnooze = function(){ snoozeUntil = Date.now() + SNOOZE_MS; app.hideBreak(); };
+  app.playAdd = function(sec){
+    if(play.day !== localDay()) play = { day: localDay(), today: 0, since: play.since };
+    play.today += sec; play.since += sec; savePlay(); app.checkBreak();
+    if($('settingsBox') && $('settingsBox').innerHTML && $('playToday')) $('playToday').textContent = fmtDur(play.today);
+  };
+  function playTick(){
+    const idle = Date.now() - lastAct;
+    if(idle >= IDLE_BREAK_MS && play.since > 0){ play.since = 0; savePlay(); app.hideBreak(); }   // längere Ruhe = natürliche Pause
+    if(!document.hidden && idle < ACTIVE_MS) app.playAdd(15);
+  }
+  ['pointerdown', 'keydown', 'touchstart', 'mousemove'].forEach(ev => document.addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true }));
+  app._playTick = playTick; app._markActive = () => { lastAct = Date.now(); }; app._setIdle = ms => { lastAct = Date.now() - ms; };
+  setInterval(playTick, 15000);
+
   // ======================================================  Einstellungen-Oberfläche
   let installEvt = null;
   window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if($('settingsBox')) app.renderSettings(); });
@@ -193,9 +236,9 @@
     const box = $('settingsBox'); if(!box) return;
     const s = app.settings, ios = /iphone|ipad|ipod/i.test((navigator.userAgent || ''));
     const install = standalone() ? '<div class="muted" style="font-size:13px">✓ Du nutzt PLAYVERSE bereits als App.</div>'
-      : installEvt ? '<button class="btn primary" onclick="app.installApp()">📲 App installieren</button>'
-      : ios ? '<div class="muted" style="font-size:13px">iPhone/iPad: Tippe in Safari auf <b>Teilen</b> und dann auf <b>„Zum Home-Bildschirm“</b>.</div>'
-      : '<div class="muted" style="font-size:13px">Öffne das Browser-Menü und wähle <b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b>. (Der Button erscheint hier automatisch, sobald dein Browser es anbietet.)</div>';
+        : installEvt ? '<button class="btn primary" onclick="app.installApp()">📲 App installieren</button>'
+            : ios ? '<div class="muted" style="font-size:13px">iPhone/iPad: Tippe in Safari auf <b>Teilen</b> und dann auf <b>„Zum Home-Bildschirm“</b>.</div>'
+                : '<div class="muted" style="font-size:13px">Öffne das Browser-Menü und wähle <b>„App installieren“</b> bzw. <b>„Zum Startbildschirm hinzufügen“</b>. (Der Button erscheint hier automatisch, sobald dein Browser es anbietet.)</div>';
     box.innerHTML = `
       <h4 class="shop-h" style="margin-top:0">🔊 Ton</h4>
       <label class="set-row"><input type="checkbox" ${s.sfx ? 'checked' : ''} onchange="app.setSetting('sfx', this.checked)"> Soundeffekte</label>
@@ -207,6 +250,9 @@
       <h4 class="shop-h">🎨 Farbthema</h4>
       <div class="theme-grid">${Object.keys(THEMES).map(k => `<button class="theme-opt${s.theme === k ? ' on' : ''}" onclick="app.setSetting('theme','${k}')" aria-label="${esc(THEMES[k].name)}">
         <span class="theme-sw" style="background:linear-gradient(135deg,${THEMES[k].a},${THEMES[k].b})"></span><span>${esc(THEMES[k].name)}</span></button>`).join('')}</div>
+      <h4 class="shop-h">⏰ Spielzeit</h4>
+      <div class="set-row">Heute gespielt: <b id="playToday">${fmtDur(play.today)}</b></div>
+      <label class="set-row">Pausen-Erinnerung <select onchange="app.setSetting('breakMin', Number(this.value))">${BREAKS.map(m => `<option value="${m}"${s.breakMin === m ? ' selected' : ''}>${m ? 'nach ' + m + ' Min.' : 'aus'}</option>`).join('')}</select></label>
       <h4 class="shop-h">📲 Handy-App</h4>${install}
       <div class="muted" style="font-size:11px;margin-top:10px">Die Einstellungen gelten nur für dieses Gerät. Als installierte App läuft PLAYVERSE im Vollbild und startet auch offline (Online-Funktionen brauchen Internet).</div>`;
   };
