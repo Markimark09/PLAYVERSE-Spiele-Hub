@@ -24,7 +24,7 @@
   const VIP_ITEM  = { 10: 'a_season', 20: 't_vipstar' };
   const SCORE_Q = {                                                 // [normal, schwer] pro Spiel
     tetris:[600,1500], snake:[8,18], flappy:[5,12], catch:[8,18], g2048:[1000,3000], breakout:[250,500], asteroids:[1000,2500],
-    neon:[300,800], spaceshooter:[300,800], pacman:[600,1500], aim:[12,22], mole:[8,15], invaders:[150,300], highway:[300,700]
+    neon:[300,800], spaceshooter:[300,800], pacman:[600,1500], aim:[12,22], mole:[8,15], invaders:[150,300], highway:[300,700], racer:[2000,6000]
   };
 
   // ======================================================  Level
@@ -50,6 +50,10 @@
     amount = Math.round(Number(amount));
     if(!(amount > 0)) return;
     amount = Math.max(1, Math.round(amount * (1 + 0.05 * Math.min(Number(cur.prestige || 0), 10))));   // Prestige: +5 % XP je Stufe (max. +50 %)
+    const wk = Math.floor((app.now() - Date.UTC(1970, 0, 5)) / (7 * 864e5));          // Wochen-XP für Clan-Bosse (diese + letzte Woche)
+    if(!cur.wxp) cur.wxp = { w: wk, x: 0 };
+    else if(cur.wxp.w !== wk) cur.wxp = cur.wxp.w === wk - 1 ? { w: wk, x: 0, pw: cur.wxp.w, px: cur.wxp.x } : { w: wk, x: 0 };
+    cur.wxp.x = Number(cur.wxp.x || 0) + amount;
     const old = levelOf(cur.xp || 0).level;
     cur.xp = Number(cur.xp || 0) + amount;
     const nw = levelOf(cur.xp).level;

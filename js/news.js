@@ -6,6 +6,8 @@
 
   // ---- Hier neue Einträge oben ergänzen (ts = Date.UTC(Jahr, Monat-1, Tag, Stunde)) ----
   const BUILTIN = [
+    { ts: Date.UTC(2026, 10, 17, 12), tag: 'NEU',    title: 'Clan-Bosse, Turbo Rush, Pong & Lightcycles',
+      text: 'Jede Woche wartet auf jeden Clan ein Boss – sein Schaden ist die XP aller Mitglieder, die Belohnung gibt es für alle. Dazu das Rennspiel Turbo Rush (Solo) sowie Pong (2 Spieler) und Lightcycles (2–4 Spieler) in Echtzeit!' },
     { ts: Date.UTC(2026, 10, 16, 12), tag: 'NEU',    title: 'Meisterschaft & Prestige',
       text: 'Jedes Spiel hat jetzt 5 Meisterschafts-Stufen von Bronze bis Diamant – mit Tickets und XP bei jeder Stufe. Wer Level 100 erreicht, kann ein Prestige starten: Neustart mit dauerhaftem XP-Bonus und exklusiven Gegenständen. Außerdem gibt es eine freundliche Pausen-Erinnerung (in den Einstellungen abschaltbar).' },
     { ts: Date.UTC(2026, 10, 15, 18), tag: 'NEU',    title: 'Sounds, Musik, Farbthemen & Handy-App',

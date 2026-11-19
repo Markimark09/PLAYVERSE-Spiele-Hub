@@ -15,7 +15,7 @@
 
   // ======================================================  KONFIGURATION
   const WEEK = 7 * 864e5, MON0 = Date.UTC(1970, 0, 5);                       // 05.01.1970 war ein Montag
-  const TOUR_POOL = ['tetris', 'snake', 'flappy', 'neon', 'spaceshooter', 'asteroids', 'pacman', 'breakout', 'catch', 'invaders', 'mole', 'aim'];
+  const TOUR_POOL = ['tetris', 'snake', 'flappy', 'neon', 'spaceshooter', 'asteroids', 'pacman', 'breakout', 'catch', 'invaders', 'mole', 'aim', 'racer'];
   const TOUR_PRIZES = [100, 60, 30];                                         // Plätze 1–3
   const TOUR_PARTICIPATION = 10;
   const CLAN_COST = 150, CLAN_MAX = 20;
@@ -32,7 +32,7 @@
     if(!d.since && this._sinceSet !== key){ this._sinceSet = key; db.ref('playverseUsers/' + key + '/since').transaction(v => v || app.now()).catch(() => {}); }
     const ach = {}; Object.keys(d.ach || {}).forEach(k => { ach[k] = 1; });
     const p = { name: d.displayName || key, bio: String(d.bio || '').slice(0, 140), since: Number(d.since || 0),
-      wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: Number(d.lvl || 1), prestige: Number(d.prestige || 0), mast: (() => { const m = {}; Object.keys(d.mastery || {}).forEach(g => { const t = Number(d.mastery[g].t || 0); if(t > 0) m[g] = t; }); return cnt(m) ? m : null; })(), ach: cnt(ach) ? ach : null };
+      wins: Number((d.stats && d.stats.wins) || 0), games: cnt(d.stats && d.stats.g), clan: d.clan || '', lvl: Number(d.lvl || 1), prestige: Number(d.prestige || 0), wxp: d.wxp ? { w: Number(d.wxp.w) || 0, x: Number(d.wxp.x) || 0, pw: Number(d.wxp.pw) || 0, px: Number(d.wxp.px) || 0 } : null, mast: (() => { const m = {}; Object.keys(d.mastery || {}).forEach(g => { const t = Number(d.mastery[g].t || 0); if(t > 0) m[g] = t; }); return cnt(m) ? m : null; })(), ach: cnt(ach) ? ach : null };
     const sig = JSON.stringify(p) + key;
     if(this._profSig === sig) return;
     this._profSig = sig;
@@ -303,7 +303,7 @@
           <div style="font-size:22px;font-weight:800;margin:4px 0"><span class="nm-clan" style="font-size:16px">[${esc(c.tag)}]</span> ${esc(c.name)}</div>
           <div class="muted" style="font-size:13px">${members.length} / ${CLAN_MAX} Mitglieder · Gründer: ${esc((c.members || {})[c.owner] || c.owner)}</div>
           <div style="margin:10px 0">${members.map(k => `<div class="list-item"><span>${this.onlineUsers[k] ? '<span style="color:#b8f36b">●</span>' : '<span style="color:#7d88b8">●</span>'} <b>${this.nameHtml(c.members[k], k, { link: true })}</b>${k === c.owner ? ' 👑' : ''}</span></div>`).join('')}</div>
-          <button class="btn" onclick="app.leaveClan()">🚪 Clan verlassen</button></div>`;
+          <button class="btn" onclick="app.leaveClan()">🚪 Clan verlassen</button></div><div id="clanBossBox"></div>`;
       } else if(mine){
         html += `<div class="note">Dein Clan [${esc(mine)}] existiert nicht mehr. <button class="btn" onclick="app.leaveClan()">Zurücksetzen</button></div>`;
       } else {
@@ -320,6 +320,7 @@
           ${(!mine && (v.n || 0) < CLAN_MAX) ? `<button class="btn primary" style="font-size:12px;padding:4px 10px" onclick="app.joinClan('${esc(v.tag)}')">Beitreten</button>` : ''}</div>`).join('')
           : '<div class="muted" style="font-size:13px">Noch keine Clans – gründe den ersten!</div>') + '</div>';
       box.innerHTML = html;
+      if(mine && c && this.renderClanBoss) this.renderClanBoss(c);
     }).catch(e => { box.innerHTML = '<div style="color:var(--red,#ff526f)">Clans nicht ladbar.</div>'; this.dbErr('Clans', e); });
   };
   app.createClan = function(){

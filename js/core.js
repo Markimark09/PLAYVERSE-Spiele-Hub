@@ -501,7 +501,8 @@ window.app = {
         frogger:  { name: 'Frogger',            ico: '🐸', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
         asteroids:{ name: 'Asteroids',          ico: '☄️', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
         neon:     { name: 'Neon Arena',         ico: '💠', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
-        spaceshooter: { name: 'Space Shooter',  ico: '🚀', dir: 'desc', fmt: 'n',   unit: 'Pkt' }
+        spaceshooter: { name: 'Space Shooter',  ico: '🚀', dir: 'desc', fmt: 'n',   unit: 'Pkt' },
+        racer:    { name: 'Turbo Rush',         ico: '🏎️', dir: 'desc', fmt: 'n',   unit: 'm' }
     },
     fmtScore: function(cat, v) {
         let cfg = this.LB_GAMES[cat] || {};

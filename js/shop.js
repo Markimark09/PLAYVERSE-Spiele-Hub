@@ -34,6 +34,7 @@
     { id:'a_unicorn',slot:'a', name:'Einhorn',  val:'🦄', price:40 },
     { id:'a_fire',   slot:'a', name:'Feuer',    val:'🔥', price:50 },
     { id:'a_crown',  slot:'a', name:'Krone',    val:'👑', price:150 },
+    { id:'t_boss',      slot:'t', name:'Bossbezwinger', price:0, excl:true },     // nur über Clan-Bosse
     { id:'t_prestige1', slot:'t', name:'Wiedergeboren', price:0, excl:true },    // nur über Prestige
     { id:'a_prestige',  slot:'a', name:'Sternschnuppe', val:'🌠', price:0, excl:true },
     { id:'t_prestige5', slot:'t', name:'Unsterblich', price:0, excl:true },
@@ -74,7 +75,9 @@
     { id:'mast_bronze10', ico:'🥉', name:'Allseits Bronze', desc:'Erreiche in 10 Spielen mindestens Bronze',    reward:60, test:d => Object.keys(d.mastery || {}).filter(k => Number(d.mastery[k].t || 0) >= 1).length >= 10 },
     { id:'mast_gold3', ico:'🥇', name:'Dreifach Gold',   desc:'Erreiche in 3 Spielen mindestens Gold',          reward:40, test:d => Object.keys(d.mastery || {}).filter(k => Number(d.mastery[k].t || 0) >= 3).length >= 3 },
     { id:'mast_dia1',  ico:'💎', name:'Diamant!',        desc:'Erreiche in einem Spiel die Stufe Diamant',      reward:80, test:d => Object.keys(d.mastery || {}).some(k => Number(d.mastery[k].t || 0) >= 5) },
-    { id:'prestige_1', ico:'⭐', name:'Wiedergeboren',   desc:'Starte dein erstes Prestige',                    reward:100, test:d => Number(d.prestige || 0) >= 1 }
+    { id:'prestige_1', ico:'⭐', name:'Wiedergeboren',   desc:'Starte dein erstes Prestige',                    reward:100, test:d => Number(d.prestige || 0) >= 1 },
+    { id:'boss_1',     ico:'🐉', name:'Bossbezwinger',   desc:'Besiege mit deinem Clan einen Wochen-Boss',      reward:60,  test:d => Number(d.stats && d.stats.boss || 0) >= 1 },
+    { id:'boss_5',     ico:'👑', name:'Boss-Legende',    desc:'Besiege 5 Clan-Bosse',                           reward:150, test:d => Number(d.stats && d.stats.boss || 0) >= 5 }
   ];
   app.SHOP = SHOP; app.ACH = ACH; app.DAILY = DAILY;
   app.cosmMap = {};
