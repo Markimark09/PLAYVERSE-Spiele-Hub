@@ -366,6 +366,7 @@ window.app = {
         if(!inp) return;
         let text = inp.value.trim().slice(0, 400);
         if(!text) return;
+        if(this.isMuted && this.isMuted()) return;
         if(!db) { this.toast('Chat nicht verfügbar: Firebase ist nicht erreichbar.', 'err'); return; }
         if(Date.now() - this.lastChatAt < 1500) { this.toast('Bitte kurz warten, bevor du die nächste Nachricht sendest.'); return; }
         this.lastChatAt = Date.now();
@@ -691,9 +692,12 @@ window.app = {
                     return;
                 }
                 let profile = { displayName: rawName, pass: pass, arcadeTickets: 10, createdAt: Date.now() };
-                uRef.set(profile).then(() => {
-                    msg.textContent = "Account erfolgreich erstellt! (+10 Start-Tickets)";
-                    this.completeLogin(key, profile);
+                (this.checkBan ? this.checkBan(key) : Promise.resolve(null)).then(banned => {
+                    if(banned){ msg.textContent = "Dieser Benutzername ist gesperrt."; return; }
+                    uRef.set(profile).then(() => {
+                        msg.textContent = "Account erfolgreich erstellt! (+10 Start-Tickets)";
+                        this.completeLogin(key, profile);
+                    });
                 });
             } else {
                 if(!s.exists() || s.val().pass !== pass) {
@@ -722,7 +726,7 @@ window.app = {
             if(prevUser && prevUser !== key) db.ref('playverseUsers/' + prevUser).off('value', this.userListener);
         }
         this.userListener = s => {
-            if(!s.exists()) return;
+            if(!s.exists()){ if(this.onAccountGone) this.onAccountGone(); return; }
             this.userData = s.val();
             this.renderAccountUI();
             this.checkIncomingInvite(this.userData.invite);
@@ -974,106 +978,9 @@ window.app = {
         document.getElementById('ticketDetailModal').classList.remove('open');
     },
 
-    adminListener: null,
-    envPin: null,
-    loadEnv: async function() {
-        if(this.envPin) return this.envPin;
-        try {
-            let res = await fetch('.env', { cache: 'no-store' });
-            if(res.ok) {
-                let text = await res.text();
-                let match = text.match(/^\s*ADMIN_PIN\s*=\s*(.+?)\s*$/m);
-                if(match && match[1]) {
-                    this.envPin = match[1].replace(/^['"]|['"]$/g, '').trim();
-                    return this.envPin;
-                }
-            }
-        } catch(e) {}
-        if(db) {
-            try {
-                let snap = await db.ref('playverseAdmin/pin').once('value');
-                if(snap.exists()) {
-                    this.envPin = String(snap.val()).trim();
-                    return this.envPin;
-                }
-            } catch(e) {}
-        }
-        return null;
-    },
-    verifyPinWithServer: async function(pin) {
-        try {
-            let res = await fetch('/api/verify-admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin: pin })
-            });
-            if(res.status === 200) return true;
-            if(res.status === 401) return false;
-        } catch(e) {}
-        let expectedPin = await this.loadEnv();
-        if(!expectedPin) return null;
-        return pin.trim() === expectedPin;
-    },
-    toggleAdminTickets: async function() {
-        let area = document.getElementById('adminTicketsArea');
-        if(area.style.display === 'block') {
-            area.style.display = 'none';
-            return;
-        }
-        let pin = prompt("Bitte Admin-Passwort / PIN eingeben:");
-        if(pin === null) return;
-        let isValid = await this.verifyPinWithServer(pin);
-        if(isValid === null) {
-            alert("Kein ADMIN_PIN gefunden! Bitte prüfe deine .env Datei oder 'playverseAdmin/pin' in Firebase.");
-            return;
-        }
-        if(!isValid) {
-            alert("Falscher Admin-PIN!");
-            return;
-        }
-        area.style.display = 'block';
-        if(!db) return;
-        if(this.adminListener) db.ref('playverseTickets').off('value', this.adminListener);
-        this.adminListener = s => {
-            let allUsers = s.val() || {};
-            this.cachedAllTickets = allUsers;
-            let box = document.getElementById('allTicketsList');
-            let items = [];
-            Object.keys(allUsers).forEach(uKey => {
-                let uTickets = allUsers[uKey] || {};
-                Object.keys(uTickets).forEach(tKey => {
-                    items.push({ uKey: uKey, tKey: tKey, t: uTickets[tKey] });
-                });
-            });
-            items.reverse();
-            if(items.length === 0) {
-                box.innerHTML = '<div class="muted" style="font-size:13px">Aktuell gibt es überhaupt keine Tickets.</div>';
-                return;
-            }
-            box.innerHTML = items.map(item => {
-                let t = item.t;
-                let isOpen = t.status === 'Offen';
-                return `
-                <div class="ticket-card">
-                    <div class="row" style="justify-content:space-between;margin-bottom:6px">
-                        <strong>👤 ${this.escapeHtml(item.uKey)} · #${this.escapeHtml(t.id)} (${this.escapeHtml(t.subj)})</strong>
-                        <span class="ticket-status ${isOpen?'open':'closed'}">${this.escapeHtml(t.status)}</span>
-                    </div>
-                    <div class="muted" style="font-size:12px;margin-bottom:6px">${this.escapeHtml(t.cat)} · ${this.escapeHtml(t.createdAt)}</div>
-                    <div style="font-size:13px;margin-bottom:8px">${this.escapeHtml(t.msg)}</div>
-                    ${t.reply ? `<div style="background:#1c2940;border-left:3px solid var(--cyan);padding:8px;border-radius:6px;font-size:12px;margin-bottom:8px"><b>Antwort:</b> ${this.escapeHtml(t.reply)}</div>` : ''}
-                    <div class="row" style="justify-content:flex-start">
-                        <button class="btn" style="padding:5px 10px;font-size:11px" onclick="app.openTicketDetail('${item.uKey}','${item.tKey}',true)">🔍 Großansicht</button>
-                        <button class="btn primary" style="padding:5px 10px;font-size:11px" onclick="app.adminReplyTicket('${item.uKey}','${item.tKey}',false)">💬 Antworten</button>
-                        ${isOpen ? `<button class="btn success" style="padding:5px 10px;font-size:11px" onclick="app.adminCloseTicket('${item.uKey}','${item.tKey}',false)">✓ Schließen</button>` : ''}
-                        <button class="btn danger" style="padding:5px 10px;font-size:11px" onclick="app.adminDeleteTicket('${item.uKey}','${item.tKey}',false)">🗑️ Löschen</button>
-                    </div>
-                </div>`;
-            }).join('');
-        };
-        db.ref('playverseTickets').on('value', this.adminListener);
-    },
+    isAdmin: false,      // wird aus der Datenbank (playverseAdmins/<name>) gesetzt – siehe admin.js
     adminReplyTicket: function(uKey, tKey, refreshModal) {
+        if(!this.isAdmin) return;
         let text = prompt("Deine Antwort an " + uKey + ":");
         if(!text || !db) return;
         db.ref('playverseTickets/' + uKey + '/' + tKey).update({
@@ -1084,13 +991,13 @@ window.app = {
         });
     },
     adminCloseTicket: function(uKey, tKey, refreshModal) {
-        if(!db) return;
+        if(!db || !this.isAdmin) return;
         db.ref('playverseTickets/' + uKey + '/' + tKey + '/status').set('Erledigt').then(() => {
             if(refreshModal) this.openTicketDetail(uKey, tKey, true);
         });
     },
     adminDeleteTicket: function(uKey, tKey, fromModal) {
-        if(!db) return;
+        if(!db || !this.isAdmin) return;
         let t = (this.cachedAllTickets[uKey] || {})[tKey];
         let label = t ? `#${t.id} (${t.subj})` : tKey;
         if(!confirm(`Möchtest du das Ticket ${label} von "${uKey}" wirklich unwiderruflich löschen?`)) return;

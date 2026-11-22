@@ -128,3 +128,14 @@ html[data-theme]:not([data-theme="default"]) .blob{opacity:.35}
 .pv-break-t{font-weight:800;font-size:16px;margin-bottom:4px}
 .pv-break-s{font-size:13px;color:#cfd6f5;margin-bottom:10px;line-height:1.45}
 .pv-break .btn{margin:2px 4px 2px 0;font-size:13px}
+
+/* Paket 9: Admin-Dashboard */
+.adm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:14px}
+.adm-stat{padding:12px 10px;border-radius:12px;background:var(--pv-card2,#121935);border:1px solid var(--pv-line,#2a3560);text-align:center}
+.adm-stat-n{font-size:22px;font-weight:800;margin:2px 0}
+.adm-card{padding:14px 16px;margin-bottom:14px;border-radius:14px;background:var(--pv-card,#141a33);border:1px solid var(--pv-line,#2a3560)}
+.adm-card-t{font-weight:800;margin-bottom:10px;font-size:15px}
+.adm-actions{display:grid;gap:12px}
+.adm-actions b{font-size:13px}
+.adm-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.adm-card code{background:#0a0d1e;padding:1px 6px;border-radius:5px;font-size:12px}

@@ -59,7 +59,7 @@
     const list = app.allNews();
     box.innerHTML = list.map(n => {
       const col = TAG_COL[n.tag] || TAG_COL.INFO;
-      const del = (app.newsAdmin && !n.builtin) ? `<button class="btn" style="padding:3px 9px;font-size:11px" onclick="app.deleteNews('${app.escapeHtml(n._id)}')">🗑 Löschen</button>` : '';
+      const del = (app.isAdmin && !n.builtin) ? `<button class="btn" style="padding:3px 9px;font-size:11px" onclick="app.deleteNews('${app.escapeHtml(n._id)}')">🗑 Löschen</button>` : '';
       return `<article class="news-item" style="border:1px solid #2a3560;border-left:4px solid ${col};border-radius:12px;padding:14px 16px;margin-bottom:12px;background:#121935">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px">
           <span><span class="pill" style="display:inline;padding:2px 9px;font-size:10px;font-weight:800;color:#0a0d1e;background:${col}">${app.escapeHtml(n.tag)}</span>
@@ -69,8 +69,6 @@
         <div style="font-size:14px;line-height:1.5;white-space:pre-wrap;color:#cfd6f5">${app.escapeHtml(n.text)}</div>
       </article>`;
     }).join('') || '<div class="muted">Noch keine News.</div>';
-    const adm = document.getElementById('newsAdminBox');
-    if(adm) adm.style.display = app.newsAdmin ? 'block' : 'none';
   };
   app.openNews = function(){
     app.clrAll();
@@ -82,27 +80,8 @@
     try { localStorage.setItem('pv_news_seen', String(latest)); } catch(e) {}
     app.updateNewsBadge();
   };
-  app.newsAdminLogin = function(){
-    if(app.newsAdmin){ app.newsAdmin = false; app.renderNews(); return; }
-    const pin = prompt('Admin-PIN eingeben:');
-    if(!pin) return;
-    const ok = (typeof app.verifyPinWithServer === 'function') ? app.verifyPinWithServer(pin) : Promise.resolve(false);
-    Promise.resolve(ok).then(good => {
-      if(good){ app.newsAdmin = true; app.renderNews(); }
-      else app.toast('Falsche PIN.', 'err');
-    }).catch(err => app.dbErr('Admin-PIN', err));
-  };
-  app.postNews = function(){
-    const t = document.getElementById('newsTitle'), x = document.getElementById('newsText'), g = document.getElementById('newsTag');
-    const title = (t.value || '').trim().slice(0, 80), text = (x.value || '').trim().slice(0, 1500);
-    if(!title || !text){ app.toast('Bitte Titel und Text ausfüllen.', 'err'); return; }
-    if(!db){ app.toast('Firebase nicht erreichbar.', 'err'); return; }
-    db.ref('playverseNews').push({ title, text, tag: g.value || 'INFO', ts: firebase.database.ServerValue.TIMESTAMP })
-        .then(() => { t.value = ''; x.value = ''; app.toast('📰 News veröffentlicht!'); })
-        .catch(err => app.dbErr('News veröffentlichen', err));
-  };
   app.deleteNews = function(id){
-    if(!db || !confirm('Diese News wirklich löschen?')) return;
+    if(!db || !app.isAdmin || !confirm('Diese News wirklich löschen?')) return;
     db.ref('playverseNews/' + id).remove().catch(err => app.dbErr('News löschen', err));
   };
 

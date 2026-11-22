@@ -1,14 +1,14 @@
 /* PLAYVERSE – Service Worker (Offline-Fähigkeit & App-Installation)
    Strategie: Eigene Dateien „Netzwerk zuerst, sonst Cache“ (Updates kommen sofort an, offline läuft die App trotzdem).
    Firebase-SDK von gstatic wird gecacht. Datenbank-Verbindungen, Chat, GIFs usw. werden NICHT angefasst. */
-const VERSION = 'pv-2026-11-17-1';
+const VERSION = 'pv-2026-11-18-1';
 const STATIC = 'pv-static-' + VERSION;
 const SDK = 'pv-sdk-v1';
 const PRECACHE = [
   './', 'index.html', 'manifest.webmanifest',
   'css/style.css', 'css/playverse-patch.css',
   'js/core.js', 'js/solo.js', 'js/multi.js', 'js/games.js', 'js/games2.js', 'js/boards.js', 'js/boards2.js',
-  'js/racer.js', 'js/boards3.js', 'js/clanboss.js',
+  'js/racer.js', 'js/boards3.js', 'js/clanboss.js', 'js/admin.js',
   'js/news.js', 'js/shop.js', 'js/community.js', 'js/progress.js', 'js/mastery.js', 'js/comfort.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-64.png'
 ];

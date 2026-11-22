@@ -253,38 +253,11 @@
     const e = this.eventNow, live = e && Number(e.until) > this.now();
     const t = live ? (EVENT_TYPES[e.type] || EVENT_TYPES.info) : null;
     box.innerHTML = (live
-            ? `<div class="event-banner" style="display:flex"><span style="font-size:30px">${t.ico}</span><div style="flex:1"><b>${esc(e.title || t.name)}</b>
+        ? `<div class="event-banner" style="display:flex"><span style="font-size:30px">${t.ico}</span><div style="flex:1"><b>${esc(e.title || t.name)}</b>
           <div style="font-size:13px">${esc(e.text || t.desc)}</div><div class="muted" style="font-size:12px;margin-top:4px">Läuft bis ${new Date(e.until).toLocaleString('de-DE')}</div></div></div>`
-            : '<div class="muted" style="font-size:14px;padding:6px 0 14px">Aktuell läuft kein Event. Schau bald wieder vorbei – Events bringen doppelte Tickets und mehr!</div>') +
-        `<div style="margin-top:14px"><button class="btn" style="font-size:12px" onclick="app.eventsAdminLogin()">👑 Admin</button></div>
-       <div id="eventAdminBox" style="display:${this.eventsAdmin ? 'block' : 'none'};margin-top:12px;padding:14px;border:1px dashed #4a5a96;border-radius:12px">
-         <h4 style="margin:0 0 8px;font-size:14px;color:var(--cyan)">EVENT STARTEN</h4>
-         <div class="field"><label>Art</label><select id="evType">${Object.keys(EVENT_TYPES).map(k => `<option value="${k}">${EVENT_TYPES[k].ico} ${EVENT_TYPES[k].name}</option>`).join('')}</select></div>
-         <div class="field"><label>Titel (optional)</label><input id="evTitle" maxlength="60" placeholder="z. B. Wochenend-Spaß"></div>
-         <div class="field"><label>Text (optional)</label><input id="evText" maxlength="140" placeholder="Kurze Beschreibung"></div>
-         <div class="field"><label>Dauer</label><select id="evHours"><option value="1">1 Stunde</option><option value="6">6 Stunden</option><option value="24" selected>24 Stunden</option><option value="72">3 Tage</option><option value="168">7 Tage</option></select></div>
-         <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="app.startEvent()">🚀 Starten</button><button class="btn" onclick="app.endEvent()">⏹ Event beenden</button></div>
-       </div>`;
+        : '<div class="muted" style="font-size:14px;padding:6px 0 14px">Aktuell läuft kein Event. Schau bald wieder vorbei – Events bringen doppelte Tickets und mehr!</div>');
   };
-  app.eventsAdminLogin = function(){
-    if(this.eventsAdmin){ this.eventsAdmin = false; return this.renderEventPane(); }
-    const pin = prompt('Admin-PIN eingeben:'); if(!pin) return;
-    Promise.resolve(this.verifyPinWithServer(pin)).then(ok => {
-      if(ok){ this.eventsAdmin = true; this.renderEventPane(); } else this.toast('Falsche PIN.', 'err');
-    }).catch(e => this.dbErr('Admin-PIN', e));
-  };
-  app.startEvent = function(){
-    if(!this.eventsAdmin || !db) return;
-    const type = $('evType').value, hours = Number($('evHours').value) || 24;
-    if(!EVENT_TYPES[type]) return;
-    db.ref('playverseEvents/current').set({ type, title: ($('evTitle').value || '').trim().slice(0, 60), text: ($('evText').value || '').trim().slice(0, 140),
-      until: this.now() + hours * 36e5, ts: firebase.database.ServerValue.TIMESTAMP })
-        .then(() => this.toast('🚀 Event gestartet!')).catch(e => this.dbErr('Event', e));
-  };
-  app.endEvent = function(){
-    if(!this.eventsAdmin || !db) return;
-    db.ref('playverseEvents/current').remove().then(() => this.toast('Event beendet.')).catch(e => this.dbErr('Event', e));
-  };
+  app.EVENT_TYPES = EVENT_TYPES;
 
   // ======================================================  CLANS
   app.renderClanPane = function(){
@@ -298,12 +271,18 @@
       const c = ms && ms.val();
       let html = '';
       if(mine && c){
-        const members = Object.keys(c.members || {});
+        const members = Object.keys(c.members || {}), isOwner = c.owner === this.currentUser, bans = c.bans || {};
+        const ownerBtns = k => (isOwner && k !== this.currentUser) ? `<span style="display:inline-flex;gap:4px;flex-wrap:wrap">
+          <button class="btn" style="font-size:11px;padding:2px 7px" title="Clan übergeben" onclick="app.clanTransfer('${k}')">👑 Übergeben</button>
+          <button class="btn" style="font-size:11px;padding:2px 7px" title="Aus dem Clan werfen" onclick="app.clanKick('${k}')">🚪 Kicken</button>
+          <button class="btn" style="font-size:11px;padding:2px 7px" title="Kicken und dauerhaft sperren" onclick="app.clanBan('${k}')">🚫 Bannen</button></span>` : '';
+        const banKeys = Object.keys(bans), banHtml = (isOwner && banKeys.length) ? `<div class="muted" style="font-size:12px;margin:8px 0 4px">Gebannte Spieler (${banKeys.length}):</div>` +
+            banKeys.map(k => `<div class="list-item"><span>🚫 ${esc(bans[k])}</span><button class="btn" style="font-size:11px;padding:2px 7px" onclick="app.clanUnban('${k}')">Entbannen</button></div>`).join('') + '<div style="height:8px"></div>' : '';
         html += `<div class="tour-card"><div class="muted" style="font-size:12px;letter-spacing:.08em">DEIN CLAN</div>
           <div style="font-size:22px;font-weight:800;margin:4px 0"><span class="nm-clan" style="font-size:16px">[${esc(c.tag)}]</span> ${esc(c.name)}</div>
           <div class="muted" style="font-size:13px">${members.length} / ${CLAN_MAX} Mitglieder · Gründer: ${esc((c.members || {})[c.owner] || c.owner)}</div>
-          <div style="margin:10px 0">${members.map(k => `<div class="list-item"><span>${this.onlineUsers[k] ? '<span style="color:#b8f36b">●</span>' : '<span style="color:#7d88b8">●</span>'} <b>${this.nameHtml(c.members[k], k, { link: true })}</b>${k === c.owner ? ' 👑' : ''}</span></div>`).join('')}</div>
-          <button class="btn" onclick="app.leaveClan()">🚪 Clan verlassen</button></div><div id="clanBossBox"></div>`;
+          <div style="margin:10px 0">${members.map(k => `<div class="list-item"><span>${this.onlineUsers[k] ? '<span style="color:#b8f36b">●</span>' : '<span style="color:#7d88b8">●</span>'} <b>${this.nameHtml(c.members[k], k, { link: true })}</b>${k === c.owner ? ' 👑' : ''}</span>${ownerBtns(k)}</div>`).join('')}</div>
+          ${banHtml}<button class="btn" onclick="app.leaveClan()">🚪 Clan verlassen</button></div><div id="clanBossBox"></div>`;
       } else if(mine){
         html += `<div class="note">Dein Clan [${esc(mine)}] existiert nicht mehr. <button class="btn" onclick="app.leaveClan()">Zurücksetzen</button></div>`;
       } else {
@@ -355,11 +334,14 @@
     this.clanBusy = true;
     const self = this, key = this.currentUser, display = (this.userData && this.userData.displayName) || key;
     let had = false;
-    db.ref('playverseUsers/' + key).transaction(cur => {
-      had = false; if(cur === null) return cur;
-      if(cur.clan){ had = true; return; }
-      cur.clan = tag; return cur;
-    }).then(r => {
+    db.ref('playverseClans/' + tag + '/bans/' + key).once('value').then(bs => {
+      if(bs.exists()){ self.toast('Du wurdest aus diesem Clan gebannt.', 'err'); return { stop: true }; }
+      return db.ref('playverseUsers/' + key).transaction(cur => {
+        had = false; if(cur === null) return cur;
+        if(cur.clan){ had = true; return; }
+        cur.clan = tag; return cur;
+      }); }).then(r => {
+      if(r && r.stop) return;
       if(!r.committed || had){ self.toast('Du bist bereits in einem Clan.', 'err'); return; }
       let ok = false;
       return db.ref('playverseClans/' + tag).transaction(cur => {
@@ -391,6 +373,53 @@
         })
     ).then(() => self.toast('Clan verlassen.')).catch(e => self.dbErr('Clan verlassen', e)).then(() => { self.clanBusy = false; self.renderClanPane(); });
   };
+
+
+  // ---- Clan-Verwaltung durch den Besitzer: übergeben, kicken, bannen, entbannen ----
+  function clanMod(self, tag, key, op, askText, okText){
+    const me = self.currentUser;
+    if(!me || !db || self.clanBusy || !/^[a-z0-9_-]{1,32}$/.test(key)) return;
+    tag = tag || (self.userData && self.userData.clan);
+    if(!tag || key === me) return;
+    if(askText && !confirm(askText)) return;
+    self.clanBusy = true;
+    let why = '';
+    db.ref('playverseClans/' + tag).transaction(cur => {
+      why = '';
+      if(cur === null) return cur;
+      if(cur.owner !== me){ why = 'owner'; return; }                       // nur der Besitzer darf das
+      cur.members = cur.members || {}; cur.bans = cur.bans || {};
+      if(op === 'unban'){ delete cur.bans[key]; return cur; }
+      if(!cur.members[key]){ why = 'member'; return; }
+      if(op === 'transfer'){ cur.owner = key; return cur; }
+      const nm = cur.members[key]; delete cur.members[key]; cur.n = cnt(cur.members);                   // kick / ban
+      if(op === 'ban') cur.bans[key] = nm;
+      return cur;
+    }).then(r => {
+      if(!r.committed || why){ self.toast(why === 'owner' ? 'Nur der Clan-Besitzer darf das.' : 'Aktion nicht möglich.', 'err'); return; }
+      if(op === 'kick' || op === 'ban') return db.ref('playverseUsers/' + key + '/clan').transaction(c => (c === tag ? null : c)).then(() => db.ref('playverseProfiles/' + key + '/clan').set('').catch(() => {}));
+    }).then(() => { if(okText) self.toast(okText); }).catch(e => self.dbErr('Clan-Verwaltung', e)).then(() => { self.clanBusy = false; self.renderClanPane(); });
+  }
+  const clanNm = (self, key) => { const c = self._clanNow; return (c && c.members && c.members[key]) || key; };
+  app.clanTransfer = function(key){ clanMod(this, null, key, 'transfer', 'Clan wirklich an diesen Spieler übergeben? Du wirst dann normales Mitglied.', '👑 Clan übergeben.'); };
+  app.clanKick = function(key){ clanMod(this, null, key, 'kick', 'Spieler wirklich aus dem Clan werfen?', '🚪 Spieler aus dem Clan geworfen.'); };
+  app.clanBan = function(key){ clanMod(this, null, key, 'ban', 'Spieler aus dem Clan werfen und dauerhaft sperren? Er kann nicht mehr beitreten.', '🚫 Spieler gebannt.'); };
+  app.clanUnban = function(key){ clanMod(this, null, key, 'unban', null, 'Bann aufgehoben.'); };
+  // Beim Anmelden prüfen: Bin ich noch in meinem Clan? (Kick/Bann/Auflösung während ich offline war)
+  app.clanSanity = function(){
+    const me = this.currentUser, tag = this.userData && this.userData.clan;
+    if(!me || !db || this._sanityFor === me) return;               // genau einmal pro Anmeldung (sonst Wettlauf mit dem Gründen/Beitreten)
+    this._sanityFor = me;
+    if(!tag) return;
+    db.ref('playverseClans/' + tag).once('value').then(s => {
+      const c = s.val();
+      if(!c || !c.members || !c.members[me]){
+        db.ref('playverseUsers/' + me + '/clan').transaction(x => (x === tag ? null : x)).then(() => this.toast(c ? '🚪 Du bist nicht mehr im Clan [' + tag + '].' : 'Dein Clan [' + tag + '] wurde aufgelöst.')).catch(() => {});
+      }
+    }).catch(() => {});
+  };
+  const _syncC = app.syncPublicProfile;
+  app.syncPublicProfile = function(d){ _syncC.call(this, d); this.clanSanity(); };
 
   // ======================================================  Seite „Turniere & Events“
   app.openEvents = function(tab){ this.showView('events'); this.evTab(tab || 'tour'); };

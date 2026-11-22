@@ -18,6 +18,7 @@
     <button class="btn" id="dailyBtn" onclick="app.openModal('shop')">🎁 Shop <span id="dailyDot" style="display:none;background:#ff5d73;color:#fff;width:9px;height:9px;border-radius:50%;margin-left:3px;vertical-align:middle"></span></button>
     <button class="btn" onclick="app.openEvents('tour')">🏆 Turniere <span id="evDot" style="display:none;background:#ff5d73;color:#fff;width:9px;height:9px;border-radius:50%;margin-left:3px;vertical-align:middle"></span></button>
     <button class="btn" onclick="app.openModal('settings')" title="Einstellungen: Sound, Musik, Themes, App" aria-label="Einstellungen">⚙️</button>
+    <button class="btn primary" id="adminBtn" style="display:none" onclick="app.openAdmin()" title="Admin-Dashboard">🛠️ Admin</button>
     <button class="btn" onclick="app.openNews()">📰 News <span id="newsBadge" style="display:none;background:#b8f36b;color:#0a0d1e;padding:1px 6px;border-radius:10px;font-size:10px;font-weight:800;margin-left:4px">NEU</span></button>
     <button class="btn" onclick="app.openModal('tickets')">🎫 Tickets</button>
     <button class="btn" id="myProfBtn" onclick="app.openMyProfile()" title="Mein Profil & Level">🙂 Profil</button>
@@ -226,15 +227,12 @@
     </div>
     <div id="evPane-tour"></div><div id="evPane-ev" style="display:none"></div><div id="evPane-clan" style="display:none"></div>
   </div></section>
+  <section id="admin" class="view"><div class="toolbar"><h2>🛠️ Admin-Dashboard</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel" style="text-align:left">
+    <div class="subtabs" id="admTabs" style="margin-bottom:14px;flex-wrap:wrap"></div>
+    <div id="admBody"></div>
+  </div></section>
   <section id="news" class="view"><div class="toolbar"><h2>📰 News</h2><button class="btn" onclick="app.home()">← Übersicht</button></div><div class="panel" style="text-align:left">
-    <div class="row" style="justify-content:space-between;margin-bottom:12px"><span class="muted" style="font-size:13px">Die neuesten Neuigkeiten rund um PLAYVERSE – neueste zuerst.</span><button class="btn" style="font-size:12px" onclick="app.newsAdminLogin()">👑 Admin</button></div>
-    <div id="newsAdminBox" style="display:none;margin-bottom:16px;padding:14px;border:1px dashed #4a5a96;border-radius:12px">
-      <h4 style="margin:0 0 8px;font-size:14px;color:var(--cyan)">NEUE NEWS VERÖFFENTLICHEN</h4>
-      <div class="field"><label>Titel</label><input id="newsTitle" maxlength="80" placeholder="Überschrift"></div>
-      <div class="field"><label>Text</label><textarea id="newsText" maxlength="1500" rows="4" style="width:100%" placeholder="Was gibt es Neues?"></textarea></div>
-      <div class="field"><label>Kategorie</label><select id="newsTag"><option>NEU</option><option>UPDATE</option><option>FIX</option><option>VIP</option><option>EVENT</option><option>INFO</option></select></div>
-      <button class="btn primary" onclick="app.postNews()">📣 Veröffentlichen</button>
-    </div>
+    <div class="muted" style="font-size:13px;margin-bottom:12px">Die neuesten Neuigkeiten rund um PLAYVERSE – neueste zuerst.</div>
     <div id="newsList"></div>
   </div></section>
 
@@ -414,15 +412,6 @@
         <h4 style="margin:18px 0 8px;font-size:14px;color:var(--muted)">DEINE SUPPORT-TICKETS</h4>
         <div id="myTicketsList" class="list-box"></div>
 
-        <div style="margin-top:20px;border-top:1px solid #ffffff18;padding-top:14px">
-          <div class="row" style="justify-content:space-between">
-            <h4 style="font-size:14px;color:var(--gold)">👑 ADMIN: ALLE SPIELER-TICKETS VERWALTEN</h4>
-            <button class="btn" style="padding:6px 12px;font-size:12px" onclick="app.toggleAdminTickets()">Admin-Ansicht öffnen</button>
-          </div>
-          <div id="adminTicketsArea" style="display:none;margin-top:12px">
-            <div id="allTicketsList" class="list-box resizable-box"><div class="muted" style="font-size:13px">Lade alle Tickets...</div></div>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -535,5 +524,6 @@
 <script src="js/progress.js"></script>
 <script src="js/mastery.js"></script>
 <script src="js/clanboss.js"></script>
+<script src="js/admin.js"></script>
 <script src="js/comfort.js"></script>
 </body></html>
